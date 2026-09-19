@@ -4,16 +4,21 @@ import {
   Bell,
   Briefcase,
   Building2,
-  CreditCard,
+  Calendar,
+  Clock,
   DollarSign,
   FileText,
   HelpCircle,
+  IndianRupee,
   LayoutGrid,
+  LogOut,
   Menu,
   Moon,
   Plus,
   Search,
+  Settings as SettingsIcon,
   Sun,
+  UserCheck,
   Users,
   X,
 } from 'lucide-react';
@@ -26,11 +31,10 @@ const overviewNav = [
 ];
 
 const salesNav = [
-  { to: '/crm',              label: 'Leads & CRM', icon: Briefcase },
-  { to: '/customers',        label: 'Customers',   icon: Users },
-  { to: '/sales/quotations', label: 'Sales',       icon: DollarSign },
-  { to: '/sales/invoices',   label: 'Invoices',    icon: FileText },
-  { to: '/sales/invoices',   label: 'Payments',    icon: CreditCard },
+  { to: '/crm',             label: 'CRM & Deals',     icon: Briefcase },
+  { to: '/customers',        label: 'Customers',        icon: Users },
+  { to: '/sales/quotations', label: 'Quotations',       icon: FileText },
+  { to: '/sales/invoices',   label: 'Invoices',         icon: DollarSign },
 ];
 
 const operationsNav = [
@@ -39,7 +43,16 @@ const operationsNav = [
 ];
 
 const peopleNav = [
-  { to: '/hrm', label: 'HR & Employees', icon: Users },
+  { to: '/hrm/my-dashboard', label: 'My Dashboard',    icon: UserCheck },
+  { to: '/hrm/employees',    label: 'Employees',       icon: Users },
+  { to: '/hrm/attendance',   label: 'Attendance',      icon: Clock },
+  { to: '/hrm/leave',        label: 'Leave',           icon: Calendar },
+  { to: '/hrm/advances',     label: 'Salary Advances', icon: IndianRupee },
+  { to: '/hrm/payroll',      label: 'Payroll',         icon: FileText },
+];
+
+const settingsNav = [
+  { to: '/settings', label: 'Business Settings', icon: SettingsIcon },
 ];
 
 function NavGroup({
@@ -75,10 +88,12 @@ export default function DashboardLayout() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const closeSidebar = () => setSidebarOpen(false);
 
   const handleLogout = () => {
+    setProfileMenuOpen(false);
     logout();
     navigate('/login');
   };
@@ -120,15 +135,27 @@ export default function DashboardLayout() {
         <NavGroup label="SALES" items={salesNav} onNavigate={closeSidebar} />
         <NavGroup label="OPERATIONS" items={operationsNav} onNavigate={closeSidebar} />
         <NavGroup label="PEOPLE" items={peopleNav} onNavigate={closeSidebar} />
+        <NavGroup label="SETTINGS" items={settingsNav} onNavigate={closeSidebar} />
 
         {/* Profile Card at bottom */}
         <div className="sidebar-profile">
-          <div className="user-profile-card" onClick={handleLogout} style={{ cursor: 'pointer' }} title="Click to Logout">
-            <div className="user-avatar-pill">RT</div>
-            <div className="user-info">
-              <span className="user-name">Ramesh Traders</span>
-              <span className="user-role">Owner · Delhi</span>
+          <div className="user-profile-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="user-avatar-pill">RT</div>
+              <div className="user-info">
+                <span className="user-name">Ramesh Traders</span>
+                <span className="user-role">Owner · Delhi</span>
+              </div>
             </div>
+            <button
+              onClick={handleLogout}
+              style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}
+              title="Logout"
+              aria-label="Logout"
+            >
+              <LogOut size={14} />
+              Logout
+            </button>
           </div>
         </div>
       </aside>
@@ -179,8 +206,110 @@ export default function DashboardLayout() {
               <span className="notification-dot" />
             </button>
 
-            <div className="avatar-badge" title={user?.full_name || 'Ramesh Traders'}>
-              RT
+            <button
+              type="button"
+              className="topbar-icon-btn"
+              onClick={handleLogout}
+              title="Logout of BizSathi"
+              aria-label="Logout"
+              style={{ color: '#ef4444' }}
+            >
+              <LogOut size={16} />
+            </button>
+
+            <div style={{ position: 'relative' }}>
+              <div
+                className="avatar-badge"
+                title={user?.full_name || 'Ramesh Traders'}
+                onClick={() => setProfileMenuOpen(prev => !prev)}
+                style={{ cursor: 'pointer' }}
+                aria-haspopup="true"
+                aria-expanded={profileMenuOpen}
+              >
+                RT
+              </div>
+
+              {profileMenuOpen && (
+                <>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                    onClick={() => setProfileMenuOpen(false)}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: 'calc(100% + 8px)',
+                      width: '240px',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--line)',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
+                      padding: '12px',
+                      zIndex: 50,
+                    }}
+                  >
+                    <div style={{ paddingBottom: '10px', marginBottom: '8px', borderBottom: '1px solid var(--line)' }}>
+                      <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: 'var(--text)' }}>
+                        {user?.full_name || 'Ramesh Traders'}
+                      </p>
+                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0' }}>
+                        {user?.email || 'admin@example.com'}
+                      </p>
+                      <span style={{ display: 'inline-block', marginTop: '6px', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
+                        Owner · Delhi
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => { setProfileMenuOpen(false); navigate('/settings'); }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text)',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <SettingsIcon size={15} />
+                      Business Settings
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: 'none',
+                        color: '#ef4444',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        marginTop: '4px',
+                      }}
+                    >
+                      <LogOut size={15} />
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>

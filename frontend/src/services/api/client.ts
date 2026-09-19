@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { getAccessToken } from '../auth/tokens';
+import { clearAuthTokens, getAccessToken } from '../auth/tokens';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
@@ -22,6 +22,10 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.warn('API 401 Unauthorized:', error.config?.url);
+      clearAuthTokens();
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

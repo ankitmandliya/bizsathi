@@ -13,7 +13,7 @@ describe('DashboardLayout Component', () => {
 
     expect(screen.getByText('BizSathi')).toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Leads & CRM')).toBeInTheDocument();
+    expect(screen.getByText('CRM & Deals')).toBeInTheDocument();
     expect(screen.getByText('Customers')).toBeInTheDocument();
   });
 });

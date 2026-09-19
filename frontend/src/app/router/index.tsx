@@ -35,6 +35,13 @@ function ModulePlaceholderPage({ name }: { name: string }) {
 import { InvoicesListPage } from '../../features/sales/pages/InvoicesListPage';
 import { InvoiceDetailPage } from '../../features/sales/pages/InvoiceDetailPage';
 import { QuotationsListPage } from '../../features/sales/pages/QuotationsListPage';
+import { EmployeesPage } from '../../features/hrm/pages/EmployeesPage';
+import { AttendancePage } from '../../features/hrm/pages/AttendancePage';
+import { LeavePage } from '../../features/hrm/pages/LeavePage';
+import { SalaryAdvancePage } from '../../features/hrm/pages/SalaryAdvancePage';
+import { PayrollPage } from '../../features/hrm/pages/PayrollPage';
+import { EmployeeDashboardPage } from '../../features/hrm/pages/EmployeeDashboardPage';
+import { SettingsPage } from '../../features/settings/SettingsPage';
 
 export default function AppRouter() {
   return (
@@ -61,8 +68,16 @@ export default function AppRouter() {
         <Route path="/sales/quotations" element={<QuotationsListPage />} />
         <Route path="/customers" element={<CustomersListPage />} />
         <Route path="/vendors" element={<ModulePlaceholderPage name="Vendors" />} />
-        <Route path="/hrm" element={<ModulePlaceholderPage name="HRM" />} />
-        <Route path="/payroll" element={<ModulePlaceholderPage name="Payroll" />} />
+        <Route path="/hrm" element={<Navigate to="/hrm/employees" replace />} />
+        <Route path="/hrm/employees" element={<EmployeesPage />} />
+        <Route path="/hrm/attendance" element={<AttendancePage />} />
+        <Route path="/hrm/leave" element={<LeavePage />} />
+        <Route path="/hrm/advances" element={<SalaryAdvancePage />} />
+        <Route path="/hrm/payroll" element={<PayrollPage />} />
+        <Route path="/hrm/dashboard" element={<EmployeeDashboardPage />} />
+        <Route path="/hrm/my-dashboard" element={<EmployeeDashboardPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+
         <Route path="/subscriptions" element={<ModulePlaceholderPage name="Subscriptions" />} />
         <Route path="/reports" element={<ModulePlaceholderPage name="Reports" />} />
         <Route path="/communication" element={<ModulePlaceholderPage name="Communication" />} />

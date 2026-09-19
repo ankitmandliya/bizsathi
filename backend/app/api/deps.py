@@ -79,9 +79,9 @@ async def get_current_tenant(
     stmt = select(TenantMember).where(
         TenantMember.user_id == current_user.id,
         TenantMember.status == "active",
-    )
+    ).order_by(TenantMember.created_at.desc())
     res = await db.execute(stmt)
-    active_member = res.scalar_one_or_none()
+    active_member = res.scalars().first()
     if active_member:
         return active_member.tenant_id
 

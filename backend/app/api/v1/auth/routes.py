@@ -87,12 +87,11 @@ async def login(
             detail="User account is inactive",
         )
 
-    # Resolve active tenant for audit record
     tenant_stmt = select(TenantMember.tenant_id).where(
         TenantMember.user_id == user.id, TenantMember.status == "active"
-    )
+    ).order_by(TenantMember.created_at.desc())
     tenant_res = await db.execute(tenant_stmt)
-    active_tenant_id = tenant_res.scalar_one_or_none() or DEFAULT_TENANT_ID
+    active_tenant_id = tenant_res.scalars().first() or DEFAULT_TENANT_ID
 
     access_token = create_access_token(subject=str(user.id))
     refresh_token = create_refresh_token(subject=str(user.id))

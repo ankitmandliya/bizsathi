@@ -15,6 +15,20 @@ from app.models.domain import (
     User,
     UserRole,
 )
+from app.models.hrm import (
+    Attendance,
+    Department,
+    Designation,
+    Employee,
+    Holiday,
+    LeaveRequest,
+    LeaveType,
+    Payroll,
+    Payslip,
+    SalaryAdvance,
+    SalaryStructure,
+    WorkSchedule,
+)
 from app.models.sales import (
     Invoice,
     InvoiceItem,
@@ -53,4 +67,17 @@ __all__ = [
     "InvoiceItem",
     "Payment",
     "SalesSequence",
+    # HRM
+    "Department",
+    "Designation",
+    "WorkSchedule",
+    "Holiday",
+    "Employee",
+    "SalaryStructure",
+    "Attendance",
+    "LeaveType",
+    "LeaveRequest",
+    "SalaryAdvance",
+    "Payroll",
+    "Payslip",
 ]

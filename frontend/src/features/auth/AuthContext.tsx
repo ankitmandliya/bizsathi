@@ -23,6 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAuthTokens();
     setUser(null);
     setIsAuthenticated(false);
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
   };
 
   return (

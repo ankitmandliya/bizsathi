@@ -73,7 +73,7 @@ export default function LoginPage() {
         <div className="auth-card" style={{ minWidth: '340px', flexShrink: 0 }}>
           {/* Logo */}
           <div className="auth-logo">
-            <div className="brand-mark">B</div>
+            <div className="brand-mark"></div>
             <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>BizSathi</span>
           </div>
 

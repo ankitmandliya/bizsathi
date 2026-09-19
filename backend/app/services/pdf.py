@@ -1,4 +1,5 @@
 from app.models.crm import Customer
+from app.models.hrm import Employee, Payslip
 from app.models.sales import Invoice, Payment
 
 
@@ -162,5 +163,87 @@ def generate_payment_receipt_pdf_html(payment: Payment, invoice: Invoice, custom
     </div>
 
     {f'<p style="font-size: 13px; color: #64748b;">Notes: {payment.notes}</p>' if payment.notes else ''}
+</body>
+</html>"""
+
+
+def generate_payslip_pdf_html(payslip: Payslip, employee: Employee, payroll_period: str) -> str:
+    """Generate a clean payslip PDF HTML for Indian SMB employees."""
+    net_color = "#16a34a" if float(payslip.net_payable) >= 0 else "#dc2626"
+    dept_name = employee.department.name if getattr(employee, 'department', None) else ""
+    created_str = payslip.created_at.strftime('%d %b %Y') if getattr(payslip, 'created_at', None) else 'N/A'
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Payslip — {payroll_period}</title>
+    <style>
+        body {{ font-family: 'Inter', -apple-system, sans-serif; color: #1e293b; margin: 0; padding: 40px; background: #fff; font-size: 14px; }}
+        .brand {{ font-size: 24px; font-weight: 800; color: #2563eb; }}
+        .header {{ display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }}
+        .section {{ background: #f8fafc; border-radius: 10px; padding: 20px; margin-bottom: 20px; }}
+        .section-title {{ font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 14px; }}
+        .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
+        .field label {{ font-size: 11px; color: #64748b; display: block; }}
+        .field span {{ font-size: 14px; font-weight: 600; color: #0f172a; }}
+        .salary-table {{ width: 100%; border-collapse: collapse; margin-top: 4px; }}
+        .salary-table td {{ padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }}
+        .salary-table td:last-child {{ text-align: right; font-weight: 600; }}
+        .deduction {{ color: #dc2626; }}
+        .net-row td {{ font-size: 18px; font-weight: 800; padding-top: 16px; border-top: 2px solid #0f172a; border-bottom: none; }}
+        @media print {{ body {{ padding: 0; }} }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <div class="brand">BizSathi</div>
+            <p style="color: #64748b; margin: 4px 0 0 0;">SALARY SLIP — {payroll_period}</p>
+        </div>
+        <div style="text-align: right;">
+            <p style="margin: 0; font-size: 13px; color: #64748b;">Generated: {created_str}</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Employee Details</div>
+        <div class="grid">
+            <div class="field"><label>Employee Name</label><span>{employee.name}</span></div>
+            <div class="field"><label>Department</label><span>{dept_name or '—'}</span></div>
+            <div class="field"><label>Employment Type</label><span>{employee.employment_type}</span></div>
+            <div class="field"><label>Working Days</label><span>{payslip.working_days_in_period} days</span></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Salary Breakdown</div>
+        <table class="salary-table">
+            <tr><td>Basic Salary</td><td>₹{float(payslip.basic):,.2f}</td></tr>
+            <tr><td>HRA (House Rent Allowance)</td><td>₹{float(payslip.hra):,.2f}</td></tr>
+            <tr><td>Other Allowances</td><td>₹{float(payslip.other_allowances):,.2f}</td></tr>
+            <tr style="font-weight: 700; background: #eff6ff;">
+                <td style="padding: 10px 0;">Gross Salary</td>
+                <td style="padding: 10px 0;">₹{float(payslip.gross_salary):,.2f}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Deductions</div>
+        <table class="salary-table">
+            <tr><td>Unpaid Absence ({payslip.unpaid_absence_days} days)</td><td class="deduction">- ₹{float(payslip.unpaid_absence_deduction):,.2f}</td></tr>
+            <tr><td>Salary Advance Adjustment</td><td class="deduction">- ₹{float(payslip.salary_advance_deduction):,.2f}</td></tr>
+            <tr><td>Other Deductions</td><td class="deduction">- ₹{float(payslip.other_deductions):,.2f}</td></tr>
+            <tr class="net-row">
+                <td>Net Payable</td>
+                <td style="color: {net_color};">₹{float(payslip.net_payable):,.2f}</td>
+            </tr>
+        </table>
+    </div>
+
+    <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 40px;">
+        This is a computer-generated payslip and does not require a signature.
+    </p>
 </body>
 </html>"""
