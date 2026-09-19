@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BarChart3,
   Bell,
@@ -25,6 +25,7 @@ import {
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth';
 import { useTheme } from '../context/ThemeContext';
+import { hrmApi } from '../features/hrm/services/hrmApi';
 
 const overviewNav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -83,12 +84,42 @@ function NavGroup({
   );
 }
 
+function getInitials(name?: string) {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function DashboardLayout() {
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isPlainEmployee, setIsPlainEmployee] = useState(false);
+  const [profile, setProfile] = useState<{ name?: string; email?: string; designation?: { name: string } } | null>(null);
+
+  useEffect(() => {
+    hrmApi.getMyProfile()
+      .then(p => setProfile(p))
+      .catch(() => { /* silent */ });
+
+    hrmApi.getEmployees({ limit: 2 })
+      .then(res => {
+        if (res && res.total === 1 && res.items[0]?.email?.toLowerCase() === user?.email?.toLowerCase()) {
+          setIsPlainEmployee(true);
+        }
+      })
+      .catch(() => {
+        setIsPlainEmployee(true);
+      });
+  }, [user]);
+
+  const displayName = profile?.name || user?.full_name || 'Ramesh Traders';
+  const displayEmail = profile?.email || user?.email || 'admin@example.com';
+  const displayRole = profile?.designation?.name || (isPlainEmployee ? 'Employee' : 'Owner · Admin');
+  const userInitials = getInitials(displayName);
 
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -97,6 +128,23 @@ export default function DashboardLayout() {
     logout();
     navigate('/login');
   };
+
+  const filteredOverviewNav = isPlainEmployee
+    ? [{ to: '/hrm/dashboard', label: 'My Dashboard', icon: UserCheck }]
+    : overviewNav;
+
+  const filteredPeopleNav = isPlainEmployee
+    ? [
+        { to: '/hrm/dashboard', label: 'My Dashboard', icon: UserCheck },
+        { to: '/hrm/attendance', label: 'Attendance', icon: Clock },
+        { to: '/hrm/leave', label: 'Leave', icon: Calendar },
+        { to: '/hrm/advances', label: 'Salary Advances', icon: IndianRupee },
+        { to: '/hrm/profile', label: 'My Profile', icon: UserCheck },
+      ]
+    : [
+        ...peopleNav,
+        { to: '/hrm/profile', label: 'My Profile', icon: UserCheck },
+      ];
 
   return (
     <div className="app-shell">
@@ -131,20 +179,20 @@ export default function DashboardLayout() {
           </button>
         </div>
 
-        <NavGroup label="OVERVIEW" items={overviewNav} onNavigate={closeSidebar} />
-        <NavGroup label="SALES" items={salesNav} onNavigate={closeSidebar} />
-        <NavGroup label="OPERATIONS" items={operationsNav} onNavigate={closeSidebar} />
-        <NavGroup label="PEOPLE" items={peopleNav} onNavigate={closeSidebar} />
-        <NavGroup label="SETTINGS" items={settingsNav} onNavigate={closeSidebar} />
+        <NavGroup label="OVERVIEW" items={filteredOverviewNav} onNavigate={closeSidebar} />
+        {!isPlainEmployee && <NavGroup label="SALES" items={salesNav} onNavigate={closeSidebar} />}
+        {!isPlainEmployee && <NavGroup label="OPERATIONS" items={operationsNav} onNavigate={closeSidebar} />}
+        <NavGroup label="PEOPLE" items={filteredPeopleNav} onNavigate={closeSidebar} />
+        {!isPlainEmployee && <NavGroup label="SETTINGS" items={settingsNav} onNavigate={closeSidebar} />}
 
         {/* Profile Card at bottom */}
         <div className="sidebar-profile">
           <div className="user-profile-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="user-avatar-pill">RT</div>
+              <div className="user-avatar-pill">{userInitials}</div>
               <div className="user-info">
-                <span className="user-name">Ramesh Traders</span>
-                <span className="user-role">Owner · Delhi</span>
+                <span className="user-name">{displayName}</span>
+                <span className="user-role">{displayRole}</span>
               </div>
             </div>
             <button
@@ -220,13 +268,13 @@ export default function DashboardLayout() {
             <div style={{ position: 'relative' }}>
               <div
                 className="avatar-badge"
-                title={user?.full_name || 'Ramesh Traders'}
+                title={displayName}
                 onClick={() => setProfileMenuOpen(prev => !prev)}
                 style={{ cursor: 'pointer' }}
                 aria-haspopup="true"
                 aria-expanded={profileMenuOpen}
               >
-                RT
+                {userInitials}
               </div>
 
               {profileMenuOpen && (
@@ -251,19 +299,19 @@ export default function DashboardLayout() {
                   >
                     <div style={{ paddingBottom: '10px', marginBottom: '8px', borderBottom: '1px solid var(--line)' }}>
                       <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: 'var(--text)' }}>
-                        {user?.full_name || 'Ramesh Traders'}
+                        {displayName}
                       </p>
                       <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0' }}>
-                        {user?.email || 'admin@example.com'}
+                        {displayEmail}
                       </p>
                       <span style={{ display: 'inline-block', marginTop: '6px', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-                        Owner · Delhi
+                        {displayRole}
                       </span>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => { setProfileMenuOpen(false); navigate('/settings'); }}
+                      onClick={() => { setProfileMenuOpen(false); navigate('/hrm/profile'); }}
                       style={{
                         width: '100%',
                         display: 'flex',
@@ -278,11 +326,37 @@ export default function DashboardLayout() {
                         fontWeight: 500,
                         cursor: 'pointer',
                         textAlign: 'left',
+                        marginBottom: '4px',
                       }}
                     >
-                      <SettingsIcon size={15} />
-                      Business Settings
+                      <UserCheck size={15} />
+                      My Profile
                     </button>
+
+                    {!isPlainEmployee && (
+                      <button
+                        type="button"
+                        onClick={() => { setProfileMenuOpen(false); navigate('/settings'); }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text)',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <SettingsIcon size={15} />
+                        Business Settings
+                      </button>
+                    )}
 
                     <button
                       type="button"

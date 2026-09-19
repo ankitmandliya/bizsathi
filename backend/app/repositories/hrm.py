@@ -143,7 +143,7 @@ class EmployeeRepository(TenantRepository[Employee]):
                 Employee.deleted_at.is_(None),
             )
         )
-        return res.scalar_one_or_none()
+        return res.scalars().first()
 
     async def get_by_user_id(self, tenant_id: UUID, user_id: UUID) -> Employee | None:
         res = await self.session.execute(
@@ -157,8 +157,25 @@ class EmployeeRepository(TenantRepository[Employee]):
                 Employee.user_id == user_id,
                 Employee.deleted_at.is_(None),
             )
+            .order_by(Employee.created_at.desc())
         )
-        return res.scalar_one_or_none()
+        return res.scalars().first()
+
+    async def get_by_email(self, tenant_id: UUID, email: str) -> Employee | None:
+        res = await self.session.execute(
+            select(Employee)
+            .options(
+                selectinload(Employee.department),
+                selectinload(Employee.designation),
+            )
+            .where(
+                Employee.tenant_id == tenant_id,
+                func.lower(Employee.email) == email.lower(),
+                Employee.deleted_at.is_(None),
+            )
+            .order_by(Employee.created_at.desc())
+        )
+        return res.scalars().first()
 
 
     async def list_employees(
@@ -486,13 +503,17 @@ class PayrollRepository(TenantRepository[Payroll]):
 
     async def get_by_id(self, tenant_id: UUID, payroll_id: UUID) -> Payroll | None:
         res = await self.session.execute(
-            select(Payroll).where(Payroll.tenant_id == tenant_id, Payroll.id == payroll_id)
+            select(Payroll)
+            .options(selectinload(Payroll.payslips))
+            .where(Payroll.tenant_id == tenant_id, Payroll.id == payroll_id)
         )
         return res.scalar_one_or_none()
 
     async def get_by_period(self, tenant_id: UUID, payroll_period: str) -> Payroll | None:
         res = await self.session.execute(
-            select(Payroll).where(
+            select(Payroll)
+            .options(selectinload(Payroll.payslips))
+            .where(
                 Payroll.tenant_id == tenant_id,
                 Payroll.payroll_period == payroll_period,
             )
@@ -502,12 +523,17 @@ class PayrollRepository(TenantRepository[Payroll]):
     async def list_payrolls(
         self, tenant_id: UUID, skip: int = 0, limit: int = 24
     ) -> tuple[Sequence[Payroll], int]:
-        base_q = select(Payroll).where(Payroll.tenant_id == tenant_id)
-        total = (await self.session.execute(select(func.count()).select_from(base_q.subquery()))).scalar() or 0
+        base_q = (
+            select(Payroll)
+            .options(selectinload(Payroll.payslips))
+            .where(Payroll.tenant_id == tenant_id)
+        )
+        total = (await self.session.execute(select(func.count()).select_from(select(Payroll.id).where(Payroll.tenant_id == tenant_id).subquery()))).scalar() or 0
         paged = await self.session.scalars(
             base_q.order_by(Payroll.payroll_period.desc()).offset(skip).limit(limit)
         )
         return paged.all(), total
+
 
 
 class PayslipRepository(TenantRepository[Payslip]):
@@ -529,6 +555,7 @@ class PayslipRepository(TenantRepository[Payslip]):
         res = await self.session.scalars(
             select(Payslip)
             .options(
+                selectinload(Payslip.payroll),
                 selectinload(Payslip.employee).selectinload(Employee.department),
                 selectinload(Payslip.employee).selectinload(Employee.designation),
             )
@@ -541,6 +568,7 @@ class PayslipRepository(TenantRepository[Payslip]):
         res = await self.session.scalars(
             select(Payslip)
             .options(
+                selectinload(Payslip.payroll),
                 selectinload(Payslip.employee).selectinload(Employee.department),
                 selectinload(Payslip.employee).selectinload(Employee.designation),
             )

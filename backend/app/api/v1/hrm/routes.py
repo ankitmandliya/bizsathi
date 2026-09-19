@@ -4,10 +4,9 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.api.deps import get_current_tenant, get_current_user, require_permission
+from app.api.deps import check_has_hr_access, get_current_tenant, get_current_user, require_permission
 from app.core.database import get_db
 from app.models.domain import User
 from app.schemas.hrm import (
@@ -23,6 +22,7 @@ from app.schemas.hrm import (
     DesignationUpdate,
     EmployeeCreate,
     EmployeeDashboardResponse,
+    EmployeeProfileUpdate,
     EmployeeResponse,
     EmployeeUpdate,
     HolidayCreate,
@@ -74,7 +74,6 @@ async def get_hrm_status(
 @router.get(
     "/work-schedule",
     response_model=WorkScheduleResponse | None,
-    dependencies=[Depends(require_permission("hrm.employee.view"))],
 )
 async def get_work_schedule(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -111,7 +110,6 @@ async def set_work_schedule(
 @router.get(
     "/holidays",
     response_model=list[HolidayResponse],
-    dependencies=[Depends(require_permission("hrm.employee.view"))],
 )
 async def list_holidays(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -144,7 +142,6 @@ async def create_holiday(
 @router.get(
     "/holidays/{holiday_id}",
     response_model=HolidayResponse,
-    dependencies=[Depends(require_permission("hrm.employee.view"))],
 )
 async def get_holiday(
     holiday_id: UUID,
@@ -189,7 +186,6 @@ async def delete_holiday(
     await service.delete_holiday(tenant_id, holiday_id, current_user.id)
 
 
-
 # ---------------------------------------------------------------------------
 # Departments
 # ---------------------------------------------------------------------------
@@ -197,7 +193,6 @@ async def delete_holiday(
 @router.get(
     "/departments",
     response_model=list[DepartmentResponse],
-    dependencies=[Depends(require_permission("hrm.employee.view"))],
 )
 async def list_departments(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -265,7 +260,6 @@ async def delete_department(
 @router.get(
     "/designations",
     response_model=list[DesignationResponse],
-    dependencies=[Depends(require_permission("hrm.employee.view"))],
 )
 async def list_designations(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -333,7 +327,6 @@ async def delete_designation(
 @router.get(
     "/employees",
     response_model=PaginatedEmployeesResponse,
-    dependencies=[Depends(require_permission("hrm.employee.view"))],
 )
 async def list_employees(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -346,6 +339,17 @@ async def list_employees(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedEmployeesResponse:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        if not linked_emp:
+            return PaginatedEmployeesResponse(items=[], total=0, page=page, limit=limit)
+        return PaginatedEmployeesResponse(
+            items=[EmployeeResponse.model_validate(linked_emp)],
+            total=1,
+            page=1,
+            limit=limit,
+        )
     employees, total = await service.list_employees(tenant_id, search, department_id, emp_status, page, limit)
     return PaginatedEmployeesResponse(
         items=[EmployeeResponse.model_validate(e) for e in employees],
@@ -375,7 +379,6 @@ async def create_employee(
 @router.get(
     "/employees/{employee_id}",
     response_model=EmployeeResponse,
-    dependencies=[Depends(require_permission("hrm.employee.view"))],
 )
 async def get_employee(
     employee_id: UUID,
@@ -384,6 +387,14 @@ async def get_employee(
     db: AsyncSession = Depends(get_db),
 ) -> EmployeeResponse:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        if not linked_emp or linked_emp.id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Cannot view another employee's profile",
+            )
     emp = await service.get_employee(tenant_id, employee_id)
     return EmployeeResponse.model_validate(emp)
 
@@ -433,9 +444,8 @@ async def setup_employee_login(
     db: AsyncSession = Depends(get_db),
 ) -> EmployeeResponse:
     service = HRMService(db)
-    emp = await service.setup_employee_login(tenant_id, employee_id, data.username, data.password, current_user.id)
+    emp = await service.setup_employee_login(tenant_id, employee_id, data.username, data.password, current_user.id, data.role)
     return EmployeeResponse.model_validate(emp)
-
 
 
 @router.post(
@@ -459,7 +469,6 @@ async def set_salary_structure(
 @router.get(
     "/employees/{employee_id}/salary-structure",
     response_model=list[SalaryStructureResponse],
-    dependencies=[Depends(require_permission("hrm.payroll.view"))],
 )
 async def get_salary_structures(
     employee_id: UUID,
@@ -468,6 +477,14 @@ async def get_salary_structures(
     db: AsyncSession = Depends(get_db),
 ) -> list[SalaryStructureResponse]:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        if not linked_emp or linked_emp.id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Cannot view another employee's salary structure",
+            )
     structs = await service.get_salary_structures(tenant_id, employee_id)
     return [SalaryStructureResponse.model_validate(s) for s in structs]
 
@@ -488,6 +505,11 @@ async def check_in(
     db: AsyncSession = Depends(get_db),
 ) -> AttendanceResponse:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        if linked_emp:
+            data.employee_id = linked_emp.id
     att = await service.check_in(tenant_id, data, current_user.id)
     return AttendanceResponse.model_validate(att)
 
@@ -507,11 +529,9 @@ async def check_out(
     return AttendanceResponse.model_validate(att)
 
 
-
 @router.get(
     "/attendance",
     response_model=PaginatedAttendanceResponse,
-    dependencies=[Depends(require_permission("hrm.attendance.view"))],
 )
 async def list_attendance(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -526,6 +546,12 @@ async def list_attendance(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedAttendanceResponse:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        employee_id = linked_emp.id if linked_emp else UUID("00000000-0000-0000-0000-000000000000")
+        department_id = None
+
     records, total = await service.list_attendance(
         tenant_id, employee_id, date_from, date_to, att_status, department_id, page, limit
     )
@@ -561,7 +587,6 @@ async def manual_correct_attendance(
 @router.get(
     "/leave-types",
     response_model=list[LeaveTypeResponse],
-    dependencies=[Depends(require_permission("hrm.leave.view"))],
 )
 async def list_leave_types(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -606,15 +631,18 @@ async def create_leave_request(
     db: AsyncSession = Depends(get_db),
 ) -> LeaveRequestResponse:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        if linked_emp:
+            data.employee_id = linked_emp.id
     lr = await service.create_leave_request(tenant_id, data, current_user.id)
     return LeaveRequestResponse.model_validate(lr)
-
 
 
 @router.get(
     "/leave-requests",
     response_model=PaginatedLeaveRequestsResponse,
-    dependencies=[Depends(require_permission("hrm.leave.view"))],
 )
 async def list_leave_requests(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -626,6 +654,11 @@ async def list_leave_requests(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedLeaveRequestsResponse:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        employee_id = linked_emp.id if linked_emp else UUID("00000000-0000-0000-0000-000000000000")
+
     requests, total = await service.list_leave_requests(tenant_id, employee_id, req_status, page, limit)
     return PaginatedLeaveRequestsResponse(
         items=[LeaveRequestResponse.model_validate(r) for r in requests],
@@ -638,7 +671,6 @@ async def list_leave_requests(
 @router.get(
     "/employees/{employee_id}/leave-balance",
     response_model=list[LeaveBalanceResponse],
-    dependencies=[Depends(require_permission("hrm.leave.view"))],
 )
 async def get_employee_leave_balance(
     employee_id: UUID,
@@ -648,6 +680,11 @@ async def get_employee_leave_balance(
     db: AsyncSession = Depends(get_db),
 ) -> list[LeaveBalanceResponse]:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        if not linked_emp or linked_emp.id != employee_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     return await service.get_employee_leave_balance(tenant_id, employee_id, year)
 
 
@@ -708,7 +745,6 @@ async def reject_leave_request(
     "/salary-advances",
     response_model=SalaryAdvanceCreateResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("hrm.advance.edit"))],
 )
 async def create_salary_advance(
     data: SalaryAdvanceCreate,
@@ -717,6 +753,11 @@ async def create_salary_advance(
     db: AsyncSession = Depends(get_db),
 ) -> SalaryAdvanceCreateResponse:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        if linked_emp:
+            data.employee_id = linked_emp.id
     adv, warning = await service.create_salary_advance(tenant_id, data, current_user.id)
 
     if adv is None:
@@ -732,7 +773,6 @@ async def create_salary_advance(
 @router.get(
     "/salary-advances",
     response_model=list[SalaryAdvanceResponse],
-    dependencies=[Depends(require_permission("hrm.advance.view"))],
 )
 async def list_salary_advances(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -744,6 +784,11 @@ async def list_salary_advances(
     db: AsyncSession = Depends(get_db),
 ) -> list[SalaryAdvanceResponse]:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        employee_id = linked_emp.id if linked_emp else UUID("00000000-0000-0000-0000-000000000000")
+
     advances, _ = await service.list_salary_advances(tenant_id, employee_id, payroll_period, page, limit)
     return [SalaryAdvanceResponse.model_validate(a) for a in advances]
 
@@ -791,7 +836,6 @@ async def run_payroll(
 @router.get(
     "/payroll",
     response_model=PaginatedPayrollResponse,
-    dependencies=[Depends(require_permission("hrm.payroll.view"))],
 )
 async def list_payrolls(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -801,9 +845,20 @@ async def list_payrolls(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedPayrollResponse:
     service = HRMService(db)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        return PaginatedPayrollResponse(items=[], total=0, page=page, limit=limit)
     payrolls, total = await service.list_payrolls(tenant_id, page, limit)
+    items = []
+    for p in payrolls:
+        resp = PayrollResponse.model_validate(p)
+        try:
+            resp.payslip_count = len(p.payslips)
+        except Exception:
+            resp.payslip_count = 0
+        items.append(resp)
     return PaginatedPayrollResponse(
-        items=[PayrollResponse.model_validate(p) for p in payrolls],
+        items=items,
         total=total,
         page=page,
         limit=limit,
@@ -813,7 +868,6 @@ async def list_payrolls(
 @router.get(
     "/payroll/{payroll_id}/payslips",
     response_model=list[PayslipResponse],
-    dependencies=[Depends(require_permission("hrm.payroll.view"))],
 )
 async def get_payslips(
     payroll_id: UUID,
@@ -823,6 +877,11 @@ async def get_payslips(
 ) -> list[PayslipResponse]:
     service = HRMService(db)
     payslips = await service.get_payslips(tenant_id, payroll_id)
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        emp_id = linked_emp.id if linked_emp else None
+        payslips = [ps for ps in payslips if ps.employee_id == emp_id]
     return [PayslipResponse.model_validate(ps) for ps in payslips]
 
 
@@ -837,11 +896,24 @@ async def get_payslip_pdf(
 ) -> Response:
     service = HRMService(db)
     payslip = await service.get_payslip(tenant_id, payslip_id)
-    # Load payroll to get period
+    has_hr = await check_has_hr_access(current_user, tenant_id, db)
+    if not has_hr:
+        linked_emp = await service.emp_repo.get_by_user_id(tenant_id, current_user.id)
+        if not linked_emp or payslip.employee_id != linked_emp.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Cannot access another employee's payslip",
+            )
+
     payroll = await service.payroll_repo.get_by_id(tenant_id, payslip.payroll_id)
     period = payroll.payroll_period if payroll else "N/A"
     html = generate_payslip_pdf_html(payslip, payslip.employee, period)
-    return Response(content=html, media_type="text/html")
+    emp_name = (payslip.employee.name if payslip.employee else "employee").replace(" ", "_")
+    return Response(
+        content=html,
+        media_type="text/html",
+        headers={"Content-Disposition": f'inline; filename="payslip_{period}_{emp_name}.html"'},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -874,4 +946,33 @@ async def get_my_payslips(
     service = HRMService(db)
     payslips = await service.get_my_payslips(tenant_id, current_user.id)
     return [PayslipResponse.model_validate(ps) for ps in payslips]
+
+
+@router.get(
+    "/me/profile",
+    response_model=EmployeeResponse,
+)
+async def get_my_profile(
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> EmployeeResponse:
+    service = HRMService(db)
+    emp = await service.get_my_profile(tenant_id, current_user.id)
+    return EmployeeResponse.model_validate(emp)
+
+
+@router.put(
+    "/me/profile",
+    response_model=EmployeeResponse,
+)
+async def update_my_profile(
+    data: EmployeeProfileUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> EmployeeResponse:
+    service = HRMService(db)
+    emp = await service.update_my_profile(tenant_id, current_user.id, data.model_dump(exclude_unset=True))
+    return EmployeeResponse.model_validate(emp)
 

@@ -68,21 +68,38 @@ function RunPayrollModal({ isOpen, onClose, onSaved }: { isOpen: boolean; onClos
 
 // ─── Payslip Detail Modal ─────────────────────────────────────────────────────
 
+function getInitials(name?: string) {
+  if (!name) return 'EMP';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'EMP';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 function PayslipModal({ payslip, period, onClose }: { payslip: Payslip; period: string; onClose: () => void }) {
   const openPdf = () => {
-    const url = `/api/v1/hrm/payslips/${payslip.id}/pdf`;
-    window.open(url, '_blank');
+    window.open(hrmApi.getPayslipPdfUrl(payslip.id), '_blank');
   };
 
+  const basic = payslip.basic || 0;
+  const hra = payslip.hra || 0;
+  const other_allowances = payslip.other_allowances || 0;
+  const gross = payslip.gross_salary || 0;
+  const unpaid_days = payslip.unpaid_absence_days || 0;
+  const unpaid_ded = payslip.unpaid_absence_deduction || 0;
+  const advance_ded = payslip.salary_advance_deduction || 0;
+  const other_ded = payslip.other_deductions || 0;
+  const net = payslip.net_payable || 0;
+
   const rows = [
-    { label: 'Basic Salary', value: payslip.basic, color: '#1e293b' },
-    { label: 'HRA (House Rent Allowance)', value: payslip.hra, color: '#1e293b' },
-    { label: 'Other Allowances', value: payslip.other_allowances, color: '#1e293b' },
+    { label: 'Basic Salary', value: basic },
+    { label: 'HRA (House Rent Allowance)', value: hra },
+    { label: 'Other Allowances', value: other_allowances },
   ];
   const deductions = [
-    { label: `Unpaid Absence (${payslip.unpaid_absence_days} days)`, value: -payslip.unpaid_absence_deduction },
-    { label: 'Salary Advance Adjusted', value: -payslip.salary_advance_deduction },
-    { label: 'Other Deductions', value: -payslip.other_deductions },
+    { label: `Unpaid Absence (${unpaid_days} days)`, value: -unpaid_ded },
+    { label: 'Salary Advance Adjusted', value: -advance_ded },
+    { label: 'Other Deductions', value: -other_ded },
   ];
 
   return (
@@ -112,7 +129,7 @@ function PayslipModal({ payslip, period, onClose }: { payslip: Payslip; period: 
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: '#eff6ff', fontSize: 15, fontWeight: 800 }}>
               <span style={{ color: '#1d4ed8' }}>Gross Salary</span>
-              <span style={{ color: '#1d4ed8' }}>₹{payslip.gross_salary.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span style={{ color: '#1d4ed8' }}>₹{gross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
 
@@ -130,13 +147,13 @@ function PayslipModal({ payslip, period, onClose }: { payslip: Payslip; period: 
           </div>
 
           {/* Net Pay */}
-          <div style={{ borderRadius: 12, padding: '18px 20px', background: payslip.net_payable >= 0 ? 'linear-gradient(135deg, #dcfce7, #bbf7d0)' : 'linear-gradient(135deg, #fee2e2, #fecaca)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ borderRadius: 12, padding: '18px 20px', background: net >= 0 ? 'linear-gradient(135deg, #dcfce7, #bbf7d0)' : 'linear-gradient(135deg, #fee2e2, #fecaca)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: payslip.net_payable >= 0 ? '#15803d' : '#b91c1c', margin: 0 }}>NET PAYABLE</p>
-              <p style={{ fontSize: 11, color: payslip.net_payable >= 0 ? '#166534' : '#991b1b', margin: '2px 0 0' }}>Working days: {payslip.working_days_in_period}</p>
+              <p style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: net >= 0 ? '#15803d' : '#b91c1c', margin: 0 }}>NET PAYABLE</p>
+              <p style={{ fontSize: 11, color: net >= 0 ? '#166534' : '#991b1b', margin: '2px 0 0' }}>Working days: {payslip.working_days_in_period || 0}</p>
             </div>
-            <p style={{ fontSize: 28, fontWeight: 800, color: payslip.net_payable >= 0 ? '#15803d' : '#b91c1c', margin: 0 }}>
-              ₹{payslip.net_payable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            <p style={{ fontSize: 28, fontWeight: 800, color: net >= 0 ? '#15803d' : '#b91c1c', margin: 0 }}>
+              ₹{net.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </p>
           </div>
         </div>
@@ -158,8 +175,13 @@ export function PayrollPage() {
 
   const fetchPayrolls = useCallback(async () => {
     setLoading(true);
-    try { const d = await hrmApi.getPayrolls({ limit: 24 }); setPayrolls(d.items); }
-    catch { /* silent */ }
+    try {
+      const d = await hrmApi.getPayrolls({ limit: 24 });
+      setPayrolls(d.items || []);
+      if (d.items && d.items.length > 0 && !selectedPayroll) {
+        loadPayslips(d.items[0]);
+      }
+    } catch { /* silent */ }
     finally { setLoading(false); }
   }, []);
 
@@ -169,12 +191,14 @@ export function PayrollPage() {
     setSelectedPayroll(payroll);
     setPayslips([]);
     setLoadingPayslips(true);
-    try { setPayslips(await hrmApi.getPayslips(payroll.id)); }
-    catch { /* silent */ }
+    try {
+      const res = await hrmApi.getPayslips(payroll.id);
+      setPayslips(res || []);
+    } catch { /* silent */ }
     finally { setLoadingPayslips(false); }
   };
 
-  const totalNetPayable = payslips.reduce((s, p) => s + p.net_payable, 0);
+  const totalNetPayable = payslips.reduce((s, p) => s + (p?.net_payable || 0), 0);
 
   return (
     <div style={{ padding: 24, maxWidth: 1200 }}>
@@ -252,30 +276,39 @@ export function PayrollPage() {
                 <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--line)' }}>No payslips found</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {payslips.map(ps => (
-                    <div key={ps.id} style={{ background: 'var(--bg-card)', borderRadius: 12, padding: '14px 18px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
-                      onClick={() => setSelectedPayslip(ps)}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                      <div style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                        {(ps.employee?.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+                  {payslips.map(ps => {
+                    const empName = ps.employee?.name || 'Employee';
+                    const initials = getInitials(empName);
+                    const gross = (ps.gross_salary || 0).toLocaleString('en-IN');
+                    const netVal = ps.net_payable || 0;
+                    const netDisplay = netVal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                    const absentDays = ps.unpaid_absence_days || 0;
+
+                    return (
+                      <div key={ps.id} style={{ background: 'var(--bg-card)', borderRadius: 12, padding: '14px 18px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                        onClick={() => setSelectedPayslip(ps)}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                          {initials}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontWeight: 700, fontSize: 14, margin: 0 }}>{empName}</p>
+                          <p style={{ fontSize: 12, color: 'var(--muted)', margin: '2px 0 0' }}>
+                            Gross ₹{gross} &nbsp;·&nbsp; {absentDays} absent days
+                          </p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <p style={{ fontWeight: 800, fontSize: 16, color: netVal >= 0 ? '#059669' : '#dc2626', margin: 0 }}>₹{netDisplay}</p>
+                          <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 0' }}>Net Payable</p>
+                        </div>
+                        <button onClick={e => { e.stopPropagation(); window.open(hrmApi.getPayslipPdfUrl(ps.id), '_blank'); }}
+                          style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #eff6ff', background: '#eff6ff', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600 }}>
+                          <Download size={13} /> PDF
+                        </button>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontWeight: 700, fontSize: 14, margin: 0 }}>{ps.employee?.name || '—'}</p>
-                        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '2px 0 0' }}>
-                          Gross ₹{ps.gross_salary.toLocaleString('en-IN')} &nbsp;·&nbsp; {ps.unpaid_absence_days} absent days
-                        </p>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontWeight: 800, fontSize: 16, color: ps.net_payable >= 0 ? '#059669' : '#dc2626', margin: 0 }}>₹{ps.net_payable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
-                        <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 0' }}>Net Payable</p>
-                      </div>
-                      <button onClick={e => { e.stopPropagation(); window.open(`/api/v1/hrm/payslips/${ps.id}/pdf`, '_blank'); }}
-                        style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #eff6ff', background: '#eff6ff', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600 }}>
-                        <Download size={13} /> PDF
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

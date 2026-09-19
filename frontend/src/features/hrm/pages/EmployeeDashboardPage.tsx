@@ -8,6 +8,20 @@ import {
 } from '../services/hrmApi';
 import { getErrorMessage } from '../../../utils/error';
 
+function formatPeriod(periodStr?: string) {
+  if (!periodStr) return '—';
+  const parts = periodStr.split('-');
+  if (parts.length === 2) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    if (!isNaN(year) && !isNaN(month)) {
+      const date = new Date(year, month, 1);
+      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+  }
+  return periodStr;
+}
+
 export function EmployeeDashboardPage() {
   const [data, setData] = useState<EmployeeDashboardData | null>(null);
   const [payslips, setPayslips] = useState<Payslip[]>([]);
@@ -314,7 +328,7 @@ export function EmployeeDashboardPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--panel-alt)', borderBottom: '1px solid var(--line)' }}>
-                {['Issue Date', 'Gross Salary', 'Deductions', 'Net Payable', 'Action'].map(h => (
+                {['Payroll Period', 'Issue Date', 'Gross Salary', 'Deductions', 'Net Payable', 'Action'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--muted)' }}>{h}</th>
                 ))}
               </tr>
@@ -322,8 +336,12 @@ export function EmployeeDashboardPage() {
             <tbody>
               {payslips.map(ps => {
                 const totalDeductions = ps.unpaid_absence_deduction + ps.salary_advance_deduction + ps.other_deductions;
+                const periodDisplay = formatPeriod(ps.payroll_period);
                 return (
                   <tr key={ps.id} style={{ borderBottom: '1px solid var(--line)' }}>
+                    <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#4f46e5' }}>
+                      {periodDisplay}
+                    </td>
                     <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 600 }}>
                       {new Date(ps.created_at).toLocaleDateString()}
                     </td>

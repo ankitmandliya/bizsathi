@@ -53,6 +53,12 @@ function CheckInCard({ employees, onRefresh }: { employees: Employee[]; onRefres
   }, []);
 
   useEffect(() => {
+    if (!selectedEmp && employees.length > 0) {
+      setSelectedEmp(employees[0].id);
+    }
+  }, [employees, selectedEmp]);
+
+  useEffect(() => {
     if (!selectedEmp) { setTodayAtt(null); return; }
     const today = new Date().toISOString().slice(0, 10);
     hrmApi.getAttendance({ employee_id: selectedEmp, date_from: today, date_to: today, limit: 1 })
@@ -451,14 +457,18 @@ export function AttendancePage() {
 
       {/* Admin Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select value={empFilter} onChange={e => setEmpFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 13, background: 'var(--bg-card)', color: 'var(--text)', outline: 'none' }}>
-          <option value="">All Employees</option>
-          {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-        </select>
-        <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 13, background: 'var(--bg-card)', color: 'var(--text)', outline: 'none' }}>
-          <option value="">All Departments</option>
-          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
+        {employees.length > 1 && (
+          <select value={empFilter} onChange={e => setEmpFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 13, background: 'var(--bg-card)', color: 'var(--text)', outline: 'none' }}>
+            <option value="">All Employees</option>
+            {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+          </select>
+        )}
+        {employees.length > 1 && (
+          <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 13, background: 'var(--bg-card)', color: 'var(--text)', outline: 'none' }}>
+            <option value="">All Departments</option>
+            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        )}
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 13, background: 'var(--bg-card)', color: 'var(--text)', outline: 'none' }}>
           <option value="">All Status</option>
           {['PRESENT', 'LATE', 'HALF_DAY', 'ABSENT', 'LEAVE'].map(s => <option key={s}>{s}</option>)}

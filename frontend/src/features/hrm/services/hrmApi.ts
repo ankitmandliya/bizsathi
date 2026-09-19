@@ -1,4 +1,5 @@
 import apiClient from '../../../services/api/client';
+import { getAccessToken } from '../../../services/auth/tokens';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ export interface Payroll {
 
 export interface Payslip {
   id: string; tenant_id: string; payroll_id: string; employee_id: string;
+  payroll_period?: string;
   gross_salary: number; basic: number; hra: number; other_allowances: number;
   working_days_in_period: number; unpaid_absence_days: number; unpaid_absence_deduction: number;
   salary_advance_deduction: number; other_deductions: number; net_payable: number;
@@ -125,8 +127,8 @@ export const hrmApi = {
   updateEmployee: (id: string, data: Partial<Employee> & { give_login_access?: boolean; username?: string; password?: string }) =>
     apiClient.put<Employee>(`/api/v1/hrm/employees/${id}`, data).then(r => r.data),
   deleteEmployee: (id: string) => apiClient.delete(`/api/v1/hrm/employees/${id}`),
-  setupLogin: (employeeId: string, username: string, password: string) =>
-    apiClient.post<Employee>(`/api/v1/hrm/employees/${employeeId}/setup-login`, { username, password }).then(r => r.data),
+  setupLogin: (employeeId: string, username: string, password: string, role?: string) =>
+    apiClient.post<Employee>(`/api/v1/hrm/employees/${employeeId}/setup-login`, { username, password, role }).then(r => r.data),
 
   // Salary Structure
   getSalaryStructures: (employeeId: string) => apiClient.get<SalaryStructure[]>(`/api/v1/hrm/employees/${employeeId}/salary-structure`).then(r => r.data),
@@ -166,8 +168,16 @@ export const hrmApi = {
   runPayroll: (payroll_period: string) => apiClient.post<Payroll>('/api/v1/hrm/payroll/run', { payroll_period }).then(r => r.data),
   getPayrolls: (params?: { page?: number; limit?: number }) => apiClient.get<PaginatedResponse<Payroll>>('/api/v1/hrm/payroll', { params }).then(r => r.data),
   getPayslips: (payrollId: string) => apiClient.get<Payslip[]>(`/api/v1/hrm/payroll/${payrollId}/payslips`).then(r => r.data),
-  getPayslipPdfUrl: (payslipId: string) => `/api/v1/hrm/payslips/${payslipId}/pdf`,
+  getPayslipPdfUrl: (payslipId: string) => {
+    const baseURL = apiClient.defaults.baseURL || window.location.origin;
+    const cleanBase = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
+    const token = getAccessToken();
+    return `${cleanBase}/api/v1/hrm/payslips/${payslipId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
   getMyDashboard: () => apiClient.get<EmployeeDashboardData>('/api/v1/hrm/me/dashboard').then(r => r.data),
   getMyPayslips: () => apiClient.get<Payslip[]>('/api/v1/hrm/me/payslips').then(r => r.data),
+  getMyProfile: () => apiClient.get<Employee>('/api/v1/hrm/me/profile').then(r => r.data),
+  updateMyProfile: (data: Partial<Employee>) => apiClient.put<Employee>('/api/v1/hrm/me/profile', data).then(r => r.data),
+  changePassword: (current_password: string, new_password: string) => apiClient.post<{ message: string }>('/api/v1/auth/change-password', { current_password, new_password }).then(r => r.data),
 };
 

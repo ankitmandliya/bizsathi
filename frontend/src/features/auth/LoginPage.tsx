@@ -9,6 +9,8 @@ import { Button } from '../../components/ui/Button';
 import apiClient from '../../services/api/client';
 import { ProjectDocumentation } from './ProjectDocumentation';
 
+import { hrmApi } from '../hrm/services/hrmApi';
+
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -37,8 +39,23 @@ export default function LoginPage() {
       login(access_token, refresh_token, {
         id: 'user-demo-id',
         email: data.email,
-        full_name: 'Demo Admin',
+        full_name: data.email,
       });
+
+      try {
+        const emps = await hrmApi.getEmployees({ limit: 2 });
+        if (emps && emps.total === 1 && emps.items[0]?.email?.toLowerCase() === data.email.toLowerCase()) {
+          navigate('/hrm/dashboard');
+          return;
+        }
+      } catch {
+        try {
+          await hrmApi.getMyDashboard();
+          navigate('/hrm/dashboard');
+          return;
+        } catch { /* proceed to main dashboard */ }
+      }
+
       navigate('/dashboard');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {

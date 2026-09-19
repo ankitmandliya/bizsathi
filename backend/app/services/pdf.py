@@ -1,3 +1,4 @@
+from typing import Any
 from app.models.crm import Customer
 from app.models.hrm import Employee, Payslip
 from app.models.sales import Invoice, Payment
@@ -167,11 +168,30 @@ def generate_payment_receipt_pdf_html(payment: Payment, invoice: Invoice, custom
 </html>"""
 
 
-def generate_payslip_pdf_html(payslip: Payslip, employee: Employee, payroll_period: str) -> str:
+def generate_payslip_pdf_html(payslip: Payslip, employee: Employee | None, payroll_period: str) -> str:
     """Generate a clean payslip PDF HTML for Indian SMB employees."""
-    net_color = "#16a34a" if float(payslip.net_payable) >= 0 else "#dc2626"
-    dept_name = employee.department.name if getattr(employee, 'department', None) else ""
+    def safe_float(val: Any) -> float:
+        try:
+            return float(val or 0)
+        except (ValueError, TypeError):
+            return 0.0
+
+    net_payable = safe_float(getattr(payslip, 'net_payable', 0))
+    basic = safe_float(getattr(payslip, 'basic', 0))
+    hra = safe_float(getattr(payslip, 'hra', 0))
+    other_allowances = safe_float(getattr(payslip, 'other_allowances', 0))
+    gross_salary = safe_float(getattr(payslip, 'gross_salary', 0))
+    unpaid_absence_deduction = safe_float(getattr(payslip, 'unpaid_absence_deduction', 0))
+    salary_advance_deduction = safe_float(getattr(payslip, 'salary_advance_deduction', 0))
+    other_deductions = safe_float(getattr(payslip, 'other_deductions', 0))
+
+    net_color = "#16a34a" if net_payable >= 0 else "#dc2626"
+    emp_name = employee.name if employee else "Employee"
+    emp_type = getattr(employee, 'employment_type', 'Full-time') if employee else 'N/A'
+    dept_name = employee.department.name if (employee and getattr(employee, 'department', None)) else ""
     created_str = payslip.created_at.strftime('%d %b %Y') if getattr(payslip, 'created_at', None) else 'N/A'
+    working_days = getattr(payslip, 'working_days_in_period', 0)
+    unpaid_days = getattr(payslip, 'unpaid_absence_days', 0)
 
     return f"""<!DOCTYPE html>
 <html>
@@ -209,22 +229,22 @@ def generate_payslip_pdf_html(payslip: Payslip, employee: Employee, payroll_peri
     <div class="section">
         <div class="section-title">Employee Details</div>
         <div class="grid">
-            <div class="field"><label>Employee Name</label><span>{employee.name}</span></div>
+            <div class="field"><label>Employee Name</label><span>{emp_name}</span></div>
             <div class="field"><label>Department</label><span>{dept_name or '—'}</span></div>
-            <div class="field"><label>Employment Type</label><span>{employee.employment_type}</span></div>
-            <div class="field"><label>Working Days</label><span>{payslip.working_days_in_period} days</span></div>
+            <div class="field"><label>Employment Type</label><span>{emp_type}</span></div>
+            <div class="field"><label>Working Days</label><span>{working_days} days</span></div>
         </div>
     </div>
 
     <div class="section">
         <div class="section-title">Salary Breakdown</div>
         <table class="salary-table">
-            <tr><td>Basic Salary</td><td>₹{float(payslip.basic):,.2f}</td></tr>
-            <tr><td>HRA (House Rent Allowance)</td><td>₹{float(payslip.hra):,.2f}</td></tr>
-            <tr><td>Other Allowances</td><td>₹{float(payslip.other_allowances):,.2f}</td></tr>
+            <tr><td>Basic Salary</td><td>₹{basic:,.2f}</td></tr>
+            <tr><td>HRA (House Rent Allowance)</td><td>₹{hra:,.2f}</td></tr>
+            <tr><td>Other Allowances</td><td>₹{other_allowances:,.2f}</td></tr>
             <tr style="font-weight: 700; background: #eff6ff;">
                 <td style="padding: 10px 0;">Gross Salary</td>
-                <td style="padding: 10px 0;">₹{float(payslip.gross_salary):,.2f}</td>
+                <td style="padding: 10px 0;">₹{gross_salary:,.2f}</td>
             </tr>
         </table>
     </div>
@@ -232,12 +252,12 @@ def generate_payslip_pdf_html(payslip: Payslip, employee: Employee, payroll_peri
     <div class="section">
         <div class="section-title">Deductions</div>
         <table class="salary-table">
-            <tr><td>Unpaid Absence ({payslip.unpaid_absence_days} days)</td><td class="deduction">- ₹{float(payslip.unpaid_absence_deduction):,.2f}</td></tr>
-            <tr><td>Salary Advance Adjustment</td><td class="deduction">- ₹{float(payslip.salary_advance_deduction):,.2f}</td></tr>
-            <tr><td>Other Deductions</td><td class="deduction">- ₹{float(payslip.other_deductions):,.2f}</td></tr>
+            <tr><td>Unpaid Absence ({unpaid_days} days)</td><td class="deduction">- ₹{unpaid_absence_deduction:,.2f}</td></tr>
+            <tr><td>Salary Advance Adjustment</td><td class="deduction">- ₹{salary_advance_deduction:,.2f}</td></tr>
+            <tr><td>Other Deductions</td><td class="deduction">- ₹{other_deductions:,.2f}</td></tr>
             <tr class="net-row">
                 <td>Net Payable</td>
-                <td style="color: {net_color};">₹{float(payslip.net_payable):,.2f}</td>
+                <td style="color: {net_color};">₹{net_payable:,.2f}</td>
             </tr>
         </table>
     </div>

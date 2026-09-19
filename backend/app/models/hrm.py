@@ -283,6 +283,17 @@ class Payroll(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
 
     payslips: Mapped[list["Payslip"]] = relationship("Payslip", back_populates="payroll")
 
+    @property
+    def payslip_count(self) -> int:
+        try:
+            return len(self.payslips) if self.payslips is not None else 0
+        except Exception:
+            return getattr(self, "_payslip_count", 0)
+
+    @payslip_count.setter
+    def payslip_count(self, value: int):
+        self._payslip_count = value
+
 
 class Payslip(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
     __tablename__ = "payslips"

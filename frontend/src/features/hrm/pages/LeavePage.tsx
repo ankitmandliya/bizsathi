@@ -32,8 +32,12 @@ function ApplyLeaveModal({ isOpen, onClose, onSaved, employees, leaveTypes }: {
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   useEffect(() => {
-    if (isOpen) { setForm({ employee_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '' }); setError(null); }
-  }, [isOpen]);
+    if (isOpen) {
+      const defaultEmpId = employees.length === 1 ? employees[0].id : '';
+      setForm({ employee_id: defaultEmpId, leave_type_id: '', start_date: '', end_date: '', reason: '' });
+      setError(null);
+    }
+  }, [isOpen, employees]);
 
   const days = form.start_date && form.end_date ? daysBetween(form.start_date, form.end_date) : 0;
 
@@ -114,18 +118,27 @@ export function LeavePage() {
   const [tab, setTab] = useState<'pending' | 'all'>('pending');
   const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isPlainEmployee, setIsPlainEmployee] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [reqData, types, emps] = await Promise.all([
+      const [reqData, types] = await Promise.all([
         hrmApi.getLeaveRequests({ limit: 200 }),
         hrmApi.getLeaveTypes(),
-        hrmApi.getEmployees({ limit: 200 }),
       ]);
       setRequests(reqData.items);
       setLeaveTypes(types);
-      setEmployees(emps.items);
+
+      try {
+        const emps = await hrmApi.getEmployees({ limit: 200 });
+        setEmployees(emps.items);
+        if (emps.total === 1) {
+          setIsPlainEmployee(true);
+        }
+      } catch {
+        setIsPlainEmployee(true);
+      }
     } catch { /* silent */ }
     finally { setLoading(false); }
   }, []);
@@ -216,18 +229,18 @@ export function LeavePage() {
                   </p>
                   {req.reason && <p style={{ color: 'var(--muted)', fontSize: 12, margin: '4px 0 0', fontStyle: 'italic' }}>"{req.reason}"</p>}
                 </div>
-                {req.status === 'PENDING' && (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => handleApprove(req.id)} disabled={actionLoading === req.id}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#15803d', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                      <CheckCircle size={14} /> Approve
-                    </button>
-                    <button onClick={() => handleReject(req.id)} disabled={actionLoading === req.id}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#b91c1c', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                      <XCircle size={14} /> Reject
-                    </button>
-                  </div>
-                )}
+            {req.status === 'PENDING' && !isPlainEmployee && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => handleApprove(req.id)} disabled={actionLoading === req.id}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#dcfce7', color: '#15803d', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  <CheckCircle size={14} /> Approve
+                </button>
+                <button onClick={() => handleReject(req.id)} disabled={actionLoading === req.id}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#fee2e2', color: '#b91c1c', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  <XCircle size={14} /> Reject
+                </button>
+              </div>
+            )}
               </div>
             );
           })}

@@ -1,7 +1,7 @@
 from typing import Annotated, Any, Callable
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Header, status
+from fastapi import Depends, HTTPException, Header, Query, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,16 +15,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=F
 
 async def get_current_user(
     token: Annotated[str | None, Depends(oauth2_scheme)] = None,
+    token_query: str | None = Query(None, alias="token"),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    if not token:
+    auth_token = token or token_query
+    if not auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
     try:
-        payload = decode_token(token)
+        payload = decode_token(auth_token)
         user_id_str: str = payload.get("sub", "")
         if not user_id_str:
             raise ValueError("Token missing sub claim")
@@ -94,6 +96,32 @@ async def get_current_tenant(
     )
 
 
+async def check_has_hr_access(current_user: User, tenant_id: UUID, db: AsyncSession) -> bool:
+    """Return True if user is superuser, owner, admin, or has HR role in this tenant."""
+    if current_user.is_superuser:
+        return True
+
+    stmt = select(TenantMember).where(
+        TenantMember.user_id == current_user.id,
+        TenantMember.tenant_id == tenant_id,
+        TenantMember.status == "active",
+    ).order_by(TenantMember.created_at.desc())
+    res = await db.execute(stmt)
+    member = res.scalars().first()
+    if not member:
+        return False
+    if member.is_owner:
+        return True
+
+    if member.role_id:
+        role_res = await db.execute(select(Role).where(Role.id == member.role_id))
+        role = role_res.scalars().first()
+        if role and role.name.lower() in ("admin", "administrator", "owner", "hr", "hr manager", "hr_manager"):
+            return True
+
+    return False
+
+
 def require_permission(permission_name: str) -> Callable[..., Any]:
     async def permission_dependency(
         current_user: Annotated[User, Depends(get_current_user)],
@@ -122,8 +150,12 @@ def require_permission(permission_name: str) -> Callable[..., Any]:
         if member.role_id:
             role_res = await db.execute(select(Role).where(Role.id == member.role_id))
             role = role_res.scalar_one_or_none()
-            if role and role.name.lower() in ("admin", "administrator", "owner"):
-                return
+            if role:
+                rname = role.name.lower()
+                if rname in ("admin", "administrator", "owner"):
+                    return
+                if permission_name.startswith("hrm.") and rname in ("hr", "hr manager", "hr_manager"):
+                    return
 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
-from app.models.domain import TenantMember, User
+from app.models.domain import Role, TenantMember, User
 from app.models.hrm import (
     Attendance,
     Department,
@@ -372,7 +372,7 @@ class HRMService:
         return emp
 
     async def setup_employee_login(
-        self, tenant_id: UUID, employee_id: UUID, username: str, password: str, admin_user_id: UUID
+        self, tenant_id: UUID, employee_id: UUID, username: str, password: str, admin_user_id: UUID, role: str = "Employee"
     ) -> Employee:
         emp = await self.emp_repo.get_by_id(tenant_id, employee_id)
         if not emp:
@@ -399,6 +399,25 @@ class HRMService:
             if not user.is_active:
                 user.is_active = True
 
+        # Resolve Role
+        target_role = None
+        if role and role.lower() in ("hr", "hr manager", "hr_manager"):
+            role_stmt = select(Role).where(Role.name.ilike("HR"))
+            rres = await self.db.execute(role_stmt)
+            target_role = rres.scalar_one_or_none()
+            if not target_role:
+                target_role = Role(name="HR", description="HR Manager Role")
+                self.db.add(target_role)
+                await self.db.flush()
+        elif role and role.lower() in ("admin", "administrator"):
+            role_stmt = select(Role).where(Role.name.ilike("Admin"))
+            rres = await self.db.execute(role_stmt)
+            target_role = rres.scalar_one_or_none()
+            if not target_role:
+                target_role = Role(name="Admin", description="Admin Role")
+                self.db.add(target_role)
+                await self.db.flush()
+
         tm_stmt = select(TenantMember).where(
             TenantMember.tenant_id == tenant_id, TenantMember.user_id == user.id
         )
@@ -408,10 +427,14 @@ class HRMService:
             member = TenantMember(
                 tenant_id=tenant_id,
                 user_id=user.id,
+                role_id=target_role.id if target_role else None,
                 is_owner=False,
                 status="active",
             )
             self.db.add(member)
+        else:
+            if target_role:
+                member.role_id = target_role.id
 
         emp.user_id = user.id
         await self.db.commit()
@@ -423,7 +446,7 @@ class HRMService:
             action="setup_login",
             entity_type="Employee",
             entity_id=str(employee_id),
-            details={"username": email_clean, "user_id": str(user.id)},
+            details={"username": email_clean, "user_id": str(user.id), "role": role},
         )
         return emp  # type: ignore[return-value]
 
@@ -546,9 +569,7 @@ class HRMService:
     ) -> Attendance:
         target_emp_id = data.employee_id
         if not target_emp_id:
-            emp_by_user = await self.emp_repo.get_by_user_id(tenant_id, user_id)
-            if not emp_by_user:
-                raise HTTPException(status_code=400, detail="Logged-in user is not linked to an active Employee record.")
+            emp_by_user = await self._ensure_employee_for_user(tenant_id, user_id)
             target_emp_id = emp_by_user.id
 
         now = data.check_in_time or datetime.now(UTC)
@@ -602,9 +623,7 @@ class HRMService:
         if not target_att_id:
             if not user_id:
                 raise HTTPException(status_code=400, detail="attendance_id or logged-in user required.")
-            emp_by_user = await self.emp_repo.get_by_user_id(tenant_id, user_id)
-            if not emp_by_user:
-                raise HTTPException(status_code=400, detail="Logged-in user is not linked to an active Employee record.")
+            emp_by_user = await self._ensure_employee_for_user(tenant_id, user_id)
             today = datetime.now(UTC).date()
             open_att = await self.att_repo.get_by_employee_date(tenant_id, emp_by_user.id, today)
             if not open_att:
@@ -973,10 +992,15 @@ class HRMService:
         else:
             payroll = existing
 
+        _, num_days = calendar.monthrange(year, month)
+        period_end = date(year, month, num_days)
+
         active_employees = await self.emp_repo.list_active(tenant_id)
 
         for emp in active_employees:
-            salary = await self.salary_repo.get_current(tenant_id, emp.id)
+            salary = await self.salary_repo.get_current(tenant_id, emp.id, as_of=period_end)
+            if not salary:
+                salary = await self.salary_repo.get_current(tenant_id, emp.id)
             if not salary:
                 continue  # No salary structure — skip this employee
 
@@ -1068,13 +1092,40 @@ class HRMService:
     # Employee Self-Service Dashboard & Self Payslips
     # -----------------------------------------------------------------------
 
-    async def get_employee_dashboard(self, tenant_id: UUID, user_id: UUID) -> dict[str, Any]:
+    async def _ensure_employee_for_user(self, tenant_id: UUID, user_id: UUID) -> Employee:
+        """Find employee linked to user_id, or auto-create and link one if missing."""
         emp = await self.emp_repo.get_by_user_id(tenant_id, user_id)
-        if not emp:
-            raise HTTPException(
-                status_code=400,
-                detail="Logged-in user is not linked to an active Employee record.",
-            )
+        if emp:
+            return emp
+
+        user_res = await self.db.execute(select(User).where(User.id == user_id))
+        user = user_res.scalar_one_or_none()
+        name_val = user.full_name if (user and user.full_name) else "Workspace User"
+        email_val = user.email if (user and user.email) else None
+
+        if email_val:
+            existing_by_email = await self.emp_repo.get_by_email(tenant_id, email_val)
+            if existing_by_email:
+                if not existing_by_email.user_id:
+                    existing_by_email.user_id = user_id
+                    await self.db.commit()
+                return await self.emp_repo.get_by_id(tenant_id, existing_by_email.id)
+
+        new_emp = Employee(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            name=name_val,
+            email=email_val,
+            employment_type="Full-time",
+            status="Active",
+            joining_date=datetime.now(UTC).date(),
+        )
+        self.db.add(new_emp)
+        await self.db.commit()
+        return await self.emp_repo.get_by_id(tenant_id, new_emp.id)
+
+    async def get_employee_dashboard(self, tenant_id: UUID, user_id: UUID) -> dict[str, Any]:
+        emp = await self._ensure_employee_for_user(tenant_id, user_id)
 
         today = datetime.now(UTC).date()
         today_att = await self.att_repo.get_by_employee_date(tenant_id, emp.id, today)
@@ -1101,9 +1152,21 @@ class HRMService:
         }
 
     async def get_my_payslips(self, tenant_id: UUID, user_id: UUID) -> list[Payslip]:
-        emp = await self.emp_repo.get_by_user_id(tenant_id, user_id)
-        if not emp:
-            return []
+        emp = await self._ensure_employee_for_user(tenant_id, user_id)
         payslips = await self.payslip_repo.list_for_employee(tenant_id, emp.id)
+        for ps in payslips:
+            if hasattr(ps, "payroll") and ps.payroll:
+                setattr(ps, "payroll_period", ps.payroll.payroll_period)
         return list(payslips)
+
+    async def get_my_profile(self, tenant_id: UUID, user_id: UUID) -> Employee:
+        return await self._ensure_employee_for_user(tenant_id, user_id)
+
+    async def update_my_profile(self, tenant_id: UUID, user_id: UUID, data: dict[str, Any]) -> Employee:
+        emp = await self._ensure_employee_for_user(tenant_id, user_id)
+        for key, value in data.items():
+            if value is not None and hasattr(emp, key):
+                setattr(emp, key, value)
+        await self.db.commit()
+        return await self.emp_repo.get_by_id(tenant_id, emp.id)
 

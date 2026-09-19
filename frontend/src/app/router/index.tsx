@@ -41,7 +41,40 @@ import { LeavePage } from '../../features/hrm/pages/LeavePage';
 import { SalaryAdvancePage } from '../../features/hrm/pages/SalaryAdvancePage';
 import { PayrollPage } from '../../features/hrm/pages/PayrollPage';
 import { EmployeeDashboardPage } from '../../features/hrm/pages/EmployeeDashboardPage';
+import { ProfilePage } from '../../features/hrm/pages/ProfilePage';
 import { SettingsPage } from '../../features/settings/SettingsPage';
+import { hrmApi } from '../../features/hrm/services/hrmApi';
+
+import { useState, useEffect } from 'react';
+
+function DynamicDashboardPage() {
+  const { user } = useAuth();
+  const [isPlainEmployee, setIsPlainEmployee] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    hrmApi.getEmployees({ limit: 2 })
+      .then(res => {
+        if (res && res.total === 1 && res.items[0]?.email?.toLowerCase() === user?.email?.toLowerCase()) {
+          setIsPlainEmployee(true);
+        }
+      })
+      .catch(() => {
+        setIsPlainEmployee(true);
+      })
+      .finally(() => setChecking(false));
+  }, [user]);
+
+  if (checking) {
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>Loading Dashboard…</div>;
+  }
+
+  if (isPlainEmployee) {
+    return <EmployeeDashboardPage />;
+  }
+
+  return <DashboardPage />;
+}
 
 export default function AppRouter() {
   return (
@@ -58,7 +91,7 @@ export default function AppRouter() {
         }
       >
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<DynamicDashboardPage />} />
         <Route path="/crm" element={<CrmMainPage />} />
         <Route path="/crm/leads/:id" element={<LeadDetailPage />} />
         <Route path="/crm/deals/:id" element={<DealDetailPage />} />
@@ -76,6 +109,8 @@ export default function AppRouter() {
         <Route path="/hrm/payroll" element={<PayrollPage />} />
         <Route path="/hrm/dashboard" element={<EmployeeDashboardPage />} />
         <Route path="/hrm/my-dashboard" element={<EmployeeDashboardPage />} />
+        <Route path="/hrm/profile" element={<ProfilePage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
 
         <Route path="/subscriptions" element={<ModulePlaceholderPage name="Subscriptions" />} />

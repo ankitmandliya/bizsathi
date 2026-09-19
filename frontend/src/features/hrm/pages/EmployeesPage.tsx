@@ -403,6 +403,7 @@ function SalaryModal({ isOpen, onClose, onSaved, employee }: { isOpen: boolean; 
 function SetupLoginModal({ isOpen, onClose, onSaved, employee }: { isOpen: boolean; onClose: () => void; onSaved: () => void; employee: Employee | null; }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'Standard Employee' | 'HR Manager' | 'Admin'>('Standard Employee');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -410,6 +411,7 @@ function SetupLoginModal({ isOpen, onClose, onSaved, employee }: { isOpen: boole
     if (employee) {
       setUsername(employee.email || '');
       setPassword('');
+      setRole('Standard Employee');
       setError(null);
     }
   }, [employee, isOpen]);
@@ -424,7 +426,7 @@ function SetupLoginModal({ isOpen, onClose, onSaved, employee }: { isOpen: boole
     }
     setSaving(true); setError(null);
     try {
-      await hrmApi.setupLogin(employee.id, username.trim(), password.trim());
+      await hrmApi.setupLogin(employee.id, username.trim(), password.trim(), role);
       onSaved();
       onClose();
     } catch (err) {
@@ -453,6 +455,14 @@ function SetupLoginModal({ isOpen, onClose, onSaved, employee }: { isOpen: boole
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Password *</label>
             <input value={password} onChange={e => setPassword(e.target.value)} type="password" required style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>System Access Role</label>
+            <select value={role} onChange={e => setRole(e.target.value as any)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-card)', color: 'var(--text)' }}>
+              <option value="Standard Employee">Standard Employee (Self-Service Only)</option>
+              <option value="HR Manager">HR Manager (Full HRMS Access)</option>
+              <option value="Admin">Admin (Full System Access)</option>
+            </select>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <button type="button" onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1.5px solid var(--line)', background: 'none', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>

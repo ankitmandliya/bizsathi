@@ -116,6 +116,7 @@ class HolidayResponse(BaseModel):
 class SetupLoginRequest(BaseModel):
     username: str = Field(..., min_length=3)
     password: str = Field(..., min_length=4)
+    role: str = "Employee"  # "Employee", "HR", "Admin"
 
 
 class EmployeeCreate(BaseModel):
@@ -432,11 +433,20 @@ class PayslipResponse(BaseModel):
     salary_advance_deduction: float
     other_deductions: float
     net_payable: float
+    payroll_period: str | None = None
     employee: EmployeeResponse | None = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EmployeeProfileUpdate(BaseModel):
+    phone: str | None = None
+    bank_account_number: str | None = None
+    bank_ifsc: str | None = None
+    emergency_contact_name: str | None = None
+    emergency_contact_phone: str | None = None
 
 
 class PaginatedPayrollResponse(BaseModel):
