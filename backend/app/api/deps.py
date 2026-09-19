@@ -88,7 +88,7 @@ async def get_current_tenant(
         return active_member.tenant_id
 
     if current_user.is_superuser:
-        return UUID("00000000-0000-0000-0000-000000000001")
+        return UUID("00000000-0000-0000-0000-000000000000")
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,

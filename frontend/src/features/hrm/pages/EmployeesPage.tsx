@@ -7,7 +7,7 @@ import { hrmApi, Employee, Department, Designation, SalaryStructure } from '../s
 import { getErrorMessage } from '../../../utils/error';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  'Active':   { bg: '#dcfce7', text: '#15803d', dot: '#22c55e' },
+  'Active': { bg: '#dcfce7', text: '#15803d', dot: '#22c55e' },
   'On Leave': { bg: '#fef3c7', text: '#b45309', dot: '#f59e0b' },
   'Inactive': { bg: '#fee2e2', text: '#b91c1c', dot: '#ef4444' },
 };
@@ -15,7 +15,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
 const EMP_TYPE_COLORS: Record<string, string> = {
   'Full-time': '#eff6ff',
   'Part-time': '#f5f3ff',
-  'Contract':  '#fff7ed',
+  'Contract': '#fff7ed',
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -82,9 +82,9 @@ function EmployeeModal({
       });
     } else {
       setForm({
-        name:'',email:'',phone:'',department_id:'',designation_id:'',joining_date:'',
-        employment_type:'Full-time',status:'Active',emergency_contact_name:'',emergency_contact_phone:'',
-        bank_account_number:'',bank_ifsc:'',pf_number:'',esi_number:'',
+        name: '', email: '', phone: '', department_id: '', designation_id: '', joining_date: '',
+        employment_type: 'Full-time', status: 'Active', emergency_contact_name: '', emergency_contact_phone: '',
+        bank_account_number: '', bank_ifsc: '', pf_number: '', esi_number: '',
         give_login_access: false, username: '', password: ''
       });
     }
@@ -201,7 +201,7 @@ function EmployeeModal({
           {activeTab === 'basic' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>पूरा नाम (Full Name) *</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Full Name *</label>
                 <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Ramesh Kumar" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
@@ -318,7 +318,7 @@ function SalaryModal({ isOpen, onClose, onSaved, employee }: { isOpen: boolean; 
 
   useEffect(() => {
     if (isOpen && employee) {
-      hrmApi.getSalaryStructures(employee.id).then(s => setStructures(s)).catch(() => {});
+      hrmApi.getSalaryStructures(employee.id).then(s => setStructures(s)).catch(() => { });
       setForm({ basic: '', hra: '', other_allowances: '', other_deductions: '', effective_from: new Date().toISOString().slice(0, 10) });
       setError(null);
     }

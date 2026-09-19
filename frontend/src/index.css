@@ -674,9 +674,50 @@ a { color: var(--primary); text-decoration: none; }
   --border:       #334155;
 
   --text:         #f8fafc;
-  --text-2:       #cbd5e1;
-  --muted:        #94a3b8;
-  --muted-2:      #64748b;
+  --text-2:       #e2e8f0;
+  --muted:        #cbd5e1;
+  --muted-2:      #94a3b8;
+}
+
+/* Dark Mode Global Overrides */
+[data-theme="dark"] label,
+[data-theme="dark"] .form-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .form-input, 
+[data-theme="dark"] .form-select, 
+[data-theme="dark"] .form-textarea {
+  color: #f8fafc !important;
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color-scheme: dark !important;
+}
+
+[data-theme="dark"] input:disabled,
+[data-theme="dark"] select:disabled,
+[data-theme="dark"] textarea:disabled {
+  color: #cbd5e1 !important;
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  opacity: 0.85;
+}
+
+[data-theme="dark"] option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] ::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.2);
 }
 
 [data-theme="dark"] .topbar {
@@ -696,7 +737,7 @@ a { color: var(--primary); text-decoration: none; }
 [data-theme="dark"] .topbar-icon-btn {
   background: #0f172a;
   border-color: #334155;
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 [data-theme="dark"] .topbar-icon-btn:hover {
@@ -748,7 +789,7 @@ a { color: var(--primary); text-decoration: none; }
 [data-theme="dark"] .data-table th {
   background: #0f172a;
   border-bottom-color: #334155;
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 [data-theme="dark"] .data-table td {
@@ -780,12 +821,6 @@ a { color: var(--primary); text-decoration: none; }
   border-top-color: #334155;
 }
 
-[data-theme="dark"] .form-input, [data-theme="dark"] .form-select, [data-theme="dark"] .form-textarea {
-  background: #0f172a;
-  border-color: #334155;
-  color: #f8fafc;
-}
-
 [data-theme="dark"] .btn-outline {
   background: #1e293b;
   border-color: #475569;
@@ -810,9 +845,6 @@ a { color: var(--primary); text-decoration: none; }
   border-color: #64748b;
 }
 
-[data-theme="dark"] .form-label {
-  color: #cbd5e1;
-}
 
 /* ============================================================
    RESPONSIVE MOBILE ARCHITECTURE
