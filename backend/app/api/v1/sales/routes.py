@@ -8,6 +8,7 @@ from app.api.deps import get_current_tenant, get_current_user, require_permissio
 from app.core.database import get_db
 from app.models.domain import User
 from app.schemas.sales import (
+    CreditLimitWarningResponse,
     CustomerStatementResponse,
     InvoiceCreate,
     InvoiceResponse,
@@ -161,24 +162,28 @@ async def convert_quotation_to_invoice(
 # --- Invoices ---
 @router.post(
     "/invoices",
-    response_model=InvoiceResponse,
-    status_code=status.HTTP_201_CREATED,
+    response_model=InvoiceResponse | CreditLimitWarningResponse,
     dependencies=[Depends(require_permission("sales.invoice.create"))],
 )
 async def create_invoice(
     body: InvoiceCreate,
     request: Request,
+    response: Response,
     current_user: Annotated[User, Depends(get_current_user)],
     tenant_id: Annotated[UUID, Depends(get_current_tenant)],
     db: AsyncSession = Depends(get_db),
-) -> InvoiceResponse:
+) -> InvoiceResponse | CreditLimitWarningResponse:
     service = SalesService(db)
-    invoice = await service.create_invoice(
+    invoice, warning = await service.create_invoice(
         tenant_id=tenant_id,
         user_id=current_user.id,
         invoice_in=body,
         ip_address=get_client_ip(request),
     )
+    if warning and not body.confirm:
+        response.status_code = status.HTTP_200_OK
+        return warning
+    response.status_code = status.HTTP_201_CREATED
     return InvoiceResponse.model_validate(invoice)
 
 

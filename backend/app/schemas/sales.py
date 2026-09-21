@@ -68,6 +68,16 @@ class InvoiceCreate(BaseModel):
     due_date: datetime
     notes: str | None = None
     items: list[LineItemCreate] = Field(..., min_length=1)
+    confirm: bool = False
+
+
+class CreditLimitWarningResponse(BaseModel):
+    warning: bool = True
+    current_outstanding: float
+    invoice_amount: float
+    credit_limit: float
+    projected_outstanding: float
+    message: str
 
 
 class InvoiceUpdate(BaseModel):

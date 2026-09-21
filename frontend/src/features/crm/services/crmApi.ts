@@ -4,12 +4,16 @@ import {
   ActivityCreate,
   ActivityUpdate,
   Customer,
+  CustomerCreate,
+  CustomerImportSummary,
+  CustomerUpdate,
   Deal,
   DealCreate,
   DealUpdate,
   Lead,
   LeadCreate,
   LeadUpdate,
+  PaginatedCustomers,
   PaginatedDeals,
   PaginatedLeads,
   PipelineStage,
@@ -438,16 +442,72 @@ export const crmApi = {
   },
 
   // --- Customers ---
-  getCustomers: async (): Promise<Customer[]> => {
+  getCustomers: async (params?: { search?: string; page?: number; limit?: number }): Promise<PaginatedCustomers> => {
     try {
-      const response = await apiClient.get<Customer[]>('/api/v1/crm/customers');
-      if (response.data && response.data.length > 0) {
+      const response = await apiClient.get<PaginatedCustomers | Customer[]>('/api/v1/crm/customers', { params });
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          return { items: response.data, total: response.data.length, page: 1, limit: 50 };
+        }
         return response.data;
       }
-      return INITIAL_DEMO_CUSTOMERS;
+      return { items: INITIAL_DEMO_CUSTOMERS, total: INITIAL_DEMO_CUSTOMERS.length, page: 1, limit: 50 };
     } catch {
-      return INITIAL_DEMO_CUSTOMERS;
+      let filtered = INITIAL_DEMO_CUSTOMERS;
+      if (params?.search) {
+        const q = params.search.toLowerCase();
+        filtered = filtered.filter((c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.company && c.company.toLowerCase().includes(q)) ||
+          (c.phone && c.phone.toLowerCase().includes(q)) ||
+          (c.email && c.email.toLowerCase().includes(q))
+        );
+      }
+      return { items: filtered, total: filtered.length, page: 1, limit: 50 };
     }
+  },
+
+  getCustomer: async (id: string): Promise<Customer> => {
+    try {
+      const response = await apiClient.get<Customer>(`/api/v1/crm/customers/${id}`);
+      return response.data;
+    } catch {
+      const found = INITIAL_DEMO_CUSTOMERS.find((c) => c.id === id);
+      if (found) return found;
+      throw new Error('Customer not found');
+    }
+  },
+
+  createCustomer: async (data: CustomerCreate): Promise<Customer> => {
+    const response = await apiClient.post<Customer>('/api/v1/crm/customers', data);
+    return response.data;
+  },
+
+  updateCustomer: async (id: string, data: CustomerUpdate): Promise<Customer> => {
+    const response = await apiClient.put<Customer>(`/api/v1/crm/customers/${id}`, data);
+    return response.data;
+  },
+
+  deleteCustomer: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api/v1/crm/customers/${id}`);
+  },
+
+  importCustomers: async (file: File): Promise<CustomerImportSummary> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post<CustomerImportSummary>('/api/v1/crm/customers/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  downloadCustomerTemplateUrl: (): string => '/api/v1/crm/customers/template',
+
+  downloadCustomerTemplate: async (): Promise<Blob> => {
+    const response = await apiClient.get<Blob>('/api/v1/crm/customers/template', {
+      responseType: 'blob',
+    });
+    return response.data;
   },
 };
 

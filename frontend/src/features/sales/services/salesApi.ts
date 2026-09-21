@@ -71,6 +71,15 @@ export interface CustomerStatement {
   payments: Payment[];
 }
 
+export interface CreditLimitWarning {
+  warning: true;
+  current_outstanding: number;
+  invoice_amount: number;
+  credit_limit: number;
+  projected_outstanding: number;
+  message: string;
+}
+
 export const INITIAL_DEMO_QUOTATIONS: Quotation[] = [
   {
     id: 'quote-1',
@@ -287,9 +296,9 @@ export const salesApi = {
     }
   },
 
-  createInvoice: async (data: { customer_id: string; quotation_id?: string; issue_date: string; due_date: string; notes?: string; items: LineItem[] }) => {
+  createInvoice: async (data: { customer_id: string; quotation_id?: string; issue_date: string; due_date: string; notes?: string; items: LineItem[]; confirm?: boolean }): Promise<Invoice | CreditLimitWarning> => {
     try {
-      const res = await apiClient.post<Invoice>('/api/v1/sales/invoices', data);
+      const res = await apiClient.post<Invoice | CreditLimitWarning>('/api/v1/sales/invoices', data);
       return res.data;
     } catch {
       const subtotal = data.items.reduce((sum, item) => sum + item.quantity * item.rate, 0);

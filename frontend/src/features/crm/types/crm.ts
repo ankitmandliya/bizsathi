@@ -163,8 +163,62 @@ export interface Customer {
   email?: string | null;
   phone?: string | null;
   whatsapp?: string | null;
+  customer_type?: string;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
+  billing_address?: string | null;
+  opening_balance?: number;
+  opening_balance_type?: 'Debit' | 'Credit';
+  credit_limit?: number | null;
+  notes?: string | null;
   converted_from_lead_id?: string | null;
   assigned_user_id?: string | null;
+  outstanding_balance?: number;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface CustomerCreate {
+  name: string;
+  phone: string;
+  email?: string;
+  customer_type?: string;
+  company?: string;
+  billing_address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  gstin?: string;
+  pan?: string;
+  opening_balance?: number;
+  opening_balance_type?: 'Debit' | 'Credit';
+  credit_limit?: number;
+  notes?: string;
+  whatsapp?: string;
+  assigned_user_id?: string;
+}
+
+export type CustomerUpdate = Partial<CustomerCreate>;
+
+export interface PaginatedCustomers {
+  items: Customer[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface CustomerImportRowError {
+  row: number;
+  reason: string;
+}
+
+export interface CustomerImportSummary {
+  imported_count: number;
+  skipped_count: number;
+  failed_count: number;
+  errors: CustomerImportRowError[];
 }

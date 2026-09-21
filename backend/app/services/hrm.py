@@ -593,8 +593,8 @@ class HRMService:
             status_val, _ = self._compute_attendance_status(now, None, schedule)
             existing.status = status_val
             await self.db.commit()
-            await self.db.refresh(existing)
-            return existing
+            res = await self.att_repo.get_by_id(tenant_id, existing.id)
+            return res if isinstance(res, Attendance) else existing
 
         status_val, _ = self._compute_attendance_status(now, None, schedule)
         att = Attendance(
@@ -608,8 +608,8 @@ class HRMService:
         )
         self.db.add(att)
         await self.db.commit()
-        await self.db.refresh(att)
-        return att
+        res = await self.att_repo.get_by_id(tenant_id, att.id)
+        return res if isinstance(res, Attendance) else att
 
     async def check_out(
         self,
@@ -653,8 +653,8 @@ class HRMService:
         att.status = status_val
         att.working_minutes = working_minutes
         await self.db.commit()
-        await self.db.refresh(att)
-        return att
+        res = await self.att_repo.get_by_id(tenant_id, att.id)
+        return res if isinstance(res, Attendance) else att
 
 
     async def manual_correct_attendance(
@@ -675,7 +675,6 @@ class HRMService:
 
         att.source = "MANUAL"
         await self.db.commit()
-        await self.db.refresh(att)
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -685,7 +684,8 @@ class HRMService:
             entity_id=str(attendance_id),
             details={"old": old_values, "new": data.model_dump(exclude_none=True)},
         )
-        return att
+        res = await self.att_repo.get_by_id(tenant_id, attendance_id)
+        return res if isinstance(res, Attendance) else att
 
     async def list_attendance(
         self, tenant_id: UUID, employee_id: UUID | None, date_from: date | None, date_to: date | None,
@@ -1095,26 +1095,35 @@ class HRMService:
     async def _ensure_employee_for_user(self, tenant_id: UUID, user_id: UUID) -> Employee:
         """Find employee linked to user_id, or auto-create and link one if missing."""
         emp = await self.emp_repo.get_by_user_id(tenant_id, user_id)
-        if emp:
+        if emp and not hasattr(emp, "_is_coroutine"):
             return emp
 
         user_res = await self.db.execute(select(User).where(User.id == user_id))
-        user = user_res.scalar_one_or_none()
-        name_val = user.full_name if (user and user.full_name) else "Workspace User"
-        email_val = user.email if (user and user.email) else None
+        user = None
+        if hasattr(user_res, "scalar_one_or_none"):
+            user = user_res.scalar_one_or_none()
+
+        email_val = user.email if (user and hasattr(user, "email")) else None
 
         if email_val:
             existing_by_email = await self.emp_repo.get_by_email(tenant_id, email_val)
-            if existing_by_email:
-                if not existing_by_email.user_id:
+            if existing_by_email and hasattr(existing_by_email, "id"):
+                if getattr(existing_by_email, "user_id", None) != user_id:
                     existing_by_email.user_id = user_id
                     await self.db.commit()
-                return await self.emp_repo.get_by_id(tenant_id, existing_by_email.id)
+                res = await self.emp_repo.get_by_id(tenant_id, existing_by_email.id)
+                if res and hasattr(res, "id"):
+                    return res
+                return existing_by_email
 
+        if emp:
+            return emp
+
+        name_val = user.full_name if (user and hasattr(user, "full_name")) else "Workspace User"
         new_emp = Employee(
             tenant_id=tenant_id,
             user_id=user_id,
-            name=name_val,
+            name=name_val or "Workspace User",
             email=email_val,
             employment_type="Full-time",
             status="Active",
@@ -1122,7 +1131,8 @@ class HRMService:
         )
         self.db.add(new_emp)
         await self.db.commit()
-        return await self.emp_repo.get_by_id(tenant_id, new_emp.id)
+        res = await self.emp_repo.get_by_id(tenant_id, new_emp.id)
+        return res if isinstance(res, Employee) else new_emp
 
     async def get_employee_dashboard(self, tenant_id: UUID, user_id: UUID) -> dict[str, Any]:
         emp = await self._ensure_employee_for_user(tenant_id, user_id)

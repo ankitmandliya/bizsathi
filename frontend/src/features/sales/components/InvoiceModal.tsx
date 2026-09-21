@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Calendar, FileText, Plus, Trash2, User } from 'lucide-react';
+import { Calendar, FileText, Plus, ShieldAlert, Trash2, User } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { crmApi, Customer } from '../../crm/services/crmApi';
-import { LineItem, salesApi } from '../services/salesApi';
+import { CreditLimitWarning, LineItem, salesApi } from '../services/salesApi';
 import { getErrorMessage } from '../../../utils/error';
 
 interface InvoiceModalProps {
@@ -27,10 +27,15 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [creditWarning, setCreditWarning] = useState<CreditLimitWarning | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      crmApi.getCustomers().then(setCustomers).catch(() => {});
+      crmApi.getCustomers().then((res) => {
+        if (Array.isArray(res)) setCustomers(res);
+        else if (res && 'items' in res) setCustomers(res.items);
+      }).catch(() => {});
+      setCreditWarning(null);
     }
   }, [isOpen]);
 
@@ -58,8 +63,7 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
   );
   const grandTotal = subtotal + totalTax;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitInvoice = async (confirmOverride = false) => {
     if (!selectedCustomerId) {
       setError('Please select a customer.');
       return;
@@ -72,13 +76,21 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
     setLoading(true);
     setError(null);
     try {
-      await salesApi.createInvoice({
+      const res = await salesApi.createInvoice({
         customer_id: selectedCustomerId,
         issue_date: new Date(issueDate).toISOString(),
         due_date: new Date(dueDate).toISOString(),
         notes: notes || undefined,
         items,
+        confirm: confirmOverride,
       });
+
+      if ('warning' in res && res.warning) {
+        setCreditWarning(res);
+        setLoading(false);
+        return;
+      }
+
       onSuccess();
       onClose();
     } catch (err) {
@@ -86,6 +98,11 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitInvoice(false);
   };
 
   return (
@@ -282,6 +299,42 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
           </Button>
         </div>
       </form>
+
+      {creditWarning && (
+        <Modal
+          isOpen={!!creditWarning}
+          onClose={() => setCreditWarning(null)}
+          title="Credit Limit Warning"
+          size="sm"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <ShieldAlert size={22} color="#d97706" />
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#92400e' }}>Credit Limit Exceeded</h4>
+              </div>
+              <p style={{ margin: 0, fontSize: 13, color: '#78350f', lineHeight: 1.5 }}>
+                {creditWarning.message}
+              </p>
+              <div style={{ marginTop: 12, padding: 10, background: '#ffffff', borderRadius: 8, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div><strong>Current Outstanding:</strong> ₹{creditWarning.current_outstanding.toLocaleString()}</div>
+                <div><strong>This Invoice Amount:</strong> ₹{creditWarning.invoice_amount.toLocaleString()}</div>
+                <div><strong>Credit Limit:</strong> ₹{creditWarning.credit_limit.toLocaleString()}</div>
+                <div style={{ color: '#dc2626', fontWeight: 700 }}><strong>Projected Outstanding:</strong> ₹{creditWarning.projected_outstanding.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <Button type="button" variant="outline" onClick={() => setCreditWarning(null)}>
+                Cancel
+              </Button>
+              <Button type="button" variant="primary" loading={loading} onClick={() => submitInvoice(true)}>
+                Proceed & Create Invoice
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </Modal>
   );
 }

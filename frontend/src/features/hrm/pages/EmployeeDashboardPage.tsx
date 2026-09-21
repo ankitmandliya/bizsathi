@@ -184,13 +184,13 @@ export function EmployeeDashboardPage() {
               <div>
                 <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Check In Time</p>
                 <p style={{ margin: '4px 0 0', fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                  {today_attendance?.check_in_at ? new Date(today_attendance.check_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                  {today_attendance?.check_in_at ? new Date(today_attendance.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </p>
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Check Out Time</p>
                 <p style={{ margin: '4px 0 0', fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                  {today_attendance?.check_out_at ? new Date(today_attendance.check_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                  {today_attendance?.check_out_at ? new Date(today_attendance.check_out_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </p>
               </div>
             </div>

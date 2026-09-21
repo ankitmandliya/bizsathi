@@ -87,6 +87,46 @@ class LeadResponse(LeadBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CustomerCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    phone: str = Field(..., min_length=1)
+    email: str | None = None
+    customer_type: str = "Individual"
+    company: str | None = None
+    billing_address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    pincode: str | None = None
+    gstin: str | None = None
+    pan: str | None = None
+    opening_balance: float = 0.0
+    opening_balance_type: str = "Debit"
+    credit_limit: float | None = None
+    notes: str | None = None
+    whatsapp: str | None = None
+    assigned_user_id: UUID | None = None
+
+
+class CustomerUpdate(BaseModel):
+    name: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    customer_type: str | None = None
+    company: str | None = None
+    billing_address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    pincode: str | None = None
+    gstin: str | None = None
+    pan: str | None = None
+    opening_balance: float | None = None
+    opening_balance_type: str | None = None
+    credit_limit: float | None = None
+    notes: str | None = None
+    whatsapp: str | None = None
+    assigned_user_id: UUID | None = None
+
+
 class CustomerResponse(BaseModel):
     id: UUID
     tenant_id: UUID
@@ -95,12 +135,44 @@ class CustomerResponse(BaseModel):
     email: str | None = None
     phone: str | None = None
     whatsapp: str | None = None
+    customer_type: str = "Individual"
+    city: str | None = None
+    state: str | None = None
+    pincode: str | None = None
+    gstin: str | None = None
+    pan: str | None = None
+    billing_address: str | None = None
+    opening_balance: float = 0.0
+    opening_balance_type: str = "Debit"
+    credit_limit: float | None = None
+    notes: str | None = None
     converted_from_lead_id: UUID | None = None
     assigned_user_id: UUID | None = None
+    outstanding_balance: float = 0.0
     created_at: datetime
     updated_at: datetime
+    deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedCustomersResponse(BaseModel):
+    items: list[CustomerResponse]
+    total: int
+    page: int
+    limit: int
+
+
+class CustomerImportRowError(BaseModel):
+    row: int
+    reason: str
+
+
+class CustomerImportSummary(BaseModel):
+    imported_count: int
+    skipped_count: int
+    failed_count: int
+    errors: list[CustomerImportRowError] = []
 
 
 class DealBase(BaseModel):

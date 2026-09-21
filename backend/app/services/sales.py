@@ -20,6 +20,7 @@ from app.repositories.sales import (
     SalesSequenceRepository,
 )
 from app.schemas.sales import (
+    CreditLimitWarningResponse,
     CustomerStatementResponse,
     InvoiceCreate,
     LineItemCreate,
@@ -283,15 +284,13 @@ class SalesService:
         user_id: UUID,
         invoice_in: InvoiceCreate,
         ip_address: str | None = None,
-    ) -> Invoice:
+    ) -> tuple[Invoice | None, CreditLimitWarningResponse | None]:
         customer = await self.customer_repo.get_by_id(tenant_id, invoice_in.customer_id)
         if not customer:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Customer not found",
             )
-
-        number = await self.seq_repo.get_next_number(tenant_id, "invoice", "INV")
 
         items: list[InvoiceItem] = []
         subtotal = 0.0
@@ -304,6 +303,30 @@ class SalesService:
             tax_amount += computed["tax_amount"]
             total_amount += computed["total"]
             items.append(InvoiceItem(**computed))
+
+        # Check Credit Limit (Section 4)
+        if customer.credit_limit is not None:
+            statement = await self.get_customer_statement(tenant_id, invoice_in.customer_id)
+            current_outstanding = statement.outstanding_balance
+            inv_amount = round(total_amount, 2)
+            projected = round(current_outstanding + inv_amount, 2)
+            credit_limit = float(customer.credit_limit)
+
+            if projected > credit_limit and not invoice_in.confirm:
+                warning = CreditLimitWarningResponse(
+                    warning=True,
+                    current_outstanding=current_outstanding,
+                    invoice_amount=inv_amount,
+                    credit_limit=credit_limit,
+                    projected_outstanding=projected,
+                    message=(
+                        f"Creating this invoice (₹{inv_amount:,.2f}) will cause customer's "
+                        f"outstanding (₹{projected:,.2f}) to exceed their credit limit (₹{credit_limit:,.2f})."
+                    ),
+                )
+                return None, warning
+
+        number = await self.seq_repo.get_next_number(tenant_id, "invoice", "INV")
 
         invoice = Invoice(
             tenant_id=tenant_id,
@@ -336,7 +359,7 @@ class SalesService:
             ip_address=ip_address,
         )
         await self.db.commit()
-        return created
+        return created, None
 
     async def get_invoice(self, tenant_id: UUID, invoice_id: UUID) -> Invoice:
         invoice = await self.invoice_repo.get_by_id(tenant_id, invoice_id)
@@ -449,9 +472,13 @@ class SalesService:
         invoices, _ = await self.invoice_repo.list_invoices(tenant_id, customer_id=customer_id, limit=200)
         payments = await self.payment_repo.list_payments(tenant_id, customer_id=customer_id)
 
+        op_bal = 0.0
+        if customer.opening_balance:
+            op_bal = float(customer.opening_balance) if customer.opening_balance_type == "Debit" else -float(customer.opening_balance)
+
         total_invoiced = sum(float(inv.total_amount) for inv in invoices if inv.status != "Cancelled")
         total_paid = sum(float(p.amount) for p in payments)
-        outstanding = sum(float(inv.amount_due) for inv in invoices if inv.status != "Cancelled")
+        outstanding = op_bal + sum(float(inv.amount_due) for inv in invoices if inv.status != "Cancelled")
 
         for inv in invoices:
             inv.status = compute_invoice_status(inv)

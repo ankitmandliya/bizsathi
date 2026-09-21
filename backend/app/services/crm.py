@@ -1,4 +1,6 @@
+import csv
 from datetime import UTC, datetime
+import io
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -15,6 +17,10 @@ from app.repositories.crm import (
 from app.schemas.crm import (
     ActivityCreate,
     ActivityUpdate,
+    CustomerCreate,
+    CustomerImportRowError,
+    CustomerImportSummary,
+    CustomerUpdate,
     DealCreate,
     DealUpdate,
     LeadCreate,
@@ -561,9 +567,18 @@ class CRMService:
         return activity
 
     # --- Customers ---
-    async def list_customers(self, tenant_id: UUID) -> list[Customer]:
-        items = await self.customer_repo.list_customers(tenant_id)
-        return list(items)
+    async def list_customers(
+        self,
+        tenant_id: UUID,
+        search: str | None = None,
+        page: int = 1,
+        limit: int = 50,
+    ) -> tuple[list[Customer], int]:
+        skip = (page - 1) * limit
+        items, total = await self.customer_repo.list_customers(
+            tenant_id, search=search, skip=skip, limit=limit
+        )
+        return list(items), total
 
     async def get_customer(self, tenant_id: UUID, customer_id: UUID) -> Customer:
         customer = await self.customer_repo.get_by_id(tenant_id, customer_id)
@@ -573,3 +588,313 @@ class CRMService:
                 detail="Customer not found",
             )
         return customer
+
+    async def create_customer(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        customer_in: CustomerCreate,
+        ip_address: str | None = None,
+    ) -> Customer:
+        if not customer_in.phone or not customer_in.phone.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Mobile Number (phone) is required",
+            )
+
+        cust_data = customer_in.model_dump()
+        customer = Customer(
+            tenant_id=tenant_id,
+            **cust_data,
+        )
+        created_cust = await self.customer_repo.create(customer)
+
+        await log_audit_event(
+            self.db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action="crm.customer.create",
+            entity_type="customer",
+            entity_id=str(created_cust.id),
+            details={"name": created_cust.name, "phone": created_cust.phone},
+            ip_address=ip_address,
+        )
+        await self.db.commit()
+        return created_cust
+
+    async def update_customer(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        customer_id: UUID,
+        customer_in: CustomerUpdate,
+        ip_address: str | None = None,
+    ) -> Customer:
+        cust = await self.get_customer(tenant_id, customer_id)
+        update_data = customer_in.model_dump(exclude_unset=True)
+
+        balance_changed = False
+        old_balance_details = {}
+        new_balance_details = {}
+
+        if "opening_balance" in update_data or "opening_balance_type" in update_data:
+            new_bal = update_data.get("opening_balance", float(cust.opening_balance))
+            new_type = update_data.get("opening_balance_type", cust.opening_balance_type)
+            if float(cust.opening_balance) != float(new_bal) or cust.opening_balance_type != new_type:
+                balance_changed = True
+                old_balance_details = {
+                    "opening_balance": float(cust.opening_balance),
+                    "opening_balance_type": cust.opening_balance_type,
+                }
+                new_balance_details = {
+                    "opening_balance": float(new_bal),
+                    "opening_balance_type": new_type,
+                }
+
+        for key, value in update_data.items():
+            setattr(cust, key, value)
+
+        audit_details: dict[str, str | bool | dict[str, str | float]] = {"name": cust.name}
+        if balance_changed:
+            audit_details["balance_changed"] = True
+            audit_details["old_balance"] = old_balance_details
+            audit_details["new_balance"] = new_balance_details
+
+        await log_audit_event(
+            self.db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action="crm.customer.update",
+            entity_type="customer",
+            entity_id=str(cust.id),
+            details=audit_details,
+            ip_address=ip_address,
+        )
+        await self.db.commit()
+        await self.db.refresh(cust)
+        return cust
+
+    async def delete_customer(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        customer_id: UUID,
+        ip_address: str | None = None,
+    ) -> None:
+        cust = await self.get_customer(tenant_id, customer_id)
+        await self.customer_repo.soft_delete(tenant_id, customer_id)
+        await log_audit_event(
+            self.db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action="crm.customer.delete",
+            entity_type="customer",
+            entity_id=str(cust.id),
+            details={"name": cust.name},
+            ip_address=ip_address,
+        )
+        await self.db.commit()
+
+    async def import_customers(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        file_bytes: bytes,
+        ip_address: str | None = None,
+    ) -> CustomerImportSummary:
+        content_str = file_bytes.decode("utf-8", errors="replace")
+        csv_reader = csv.reader(io.StringIO(content_str))
+        rows = list(csv_reader)
+
+        if not rows:
+            return CustomerImportSummary(imported_count=0, skipped_count=0, failed_count=0, errors=[])
+
+        header = [h.strip().lower().replace("*", "").strip() for h in rows[0]]
+
+        col_map: dict[str, int] = {}
+        for idx, h in enumerate(header):
+            if "customer type" in h or h == "type":
+                col_map["customer_type"] = idx
+            elif "balance type" in h or "debit/credit" in h:
+                col_map["opening_balance_type"] = idx
+            elif "opening balance" in h or h == "balance":
+                col_map["opening_balance"] = idx
+            elif "credit limit" in h or h == "limit":
+                col_map["credit_limit"] = idx
+            elif "company" in h:
+                col_map["company"] = idx
+            elif "address" in h:
+                col_map["billing_address"] = idx
+            elif "city" in h:
+                col_map["city"] = idx
+            elif "state" in h:
+                col_map["state"] = idx
+            elif "pincode" in h or "pin" in h or "zip" in h:
+                col_map["pincode"] = idx
+            elif "gstin" in h or "gst" in h:
+                col_map["gstin"] = idx
+            elif "pan" in h:
+                col_map["pan"] = idx
+            elif "notes" in h:
+                col_map["notes"] = idx
+            elif "mobile" in h or "phone" in h:
+                col_map["phone"] = idx
+            elif "email" in h:
+                col_map["email"] = idx
+            elif "name" in h:
+                col_map["name"] = idx
+
+        imported_count = 0
+        skipped_count = 0
+        failed_count = 0
+        errors: list[CustomerImportRowError] = []
+
+        for row_idx, row in enumerate(rows[1:], start=2):
+            if not any(cell.strip() for cell in row):
+                continue  # skip completely empty lines
+
+            def get_val(key: str) -> str | None:
+                if key in col_map and col_map[key] < len(row):
+                    val = row[col_map[key]].strip()
+                    return val if val else None
+                return None
+
+            name = get_val("name")
+            phone = get_val("phone")
+
+            if not name:
+                errors.append(CustomerImportRowError(row=row_idx, reason="Customer Name is required"))
+                failed_count += 1
+                continue
+
+            if not phone:
+                errors.append(CustomerImportRowError(row=row_idx, reason="Mobile Number is required"))
+                failed_count += 1
+                continue
+
+            email = get_val("email")
+            if email and ("@" not in email or "." not in email):
+                errors.append(CustomerImportRowError(row=row_idx, reason="Invalid email format"))
+                failed_count += 1
+                continue
+
+            op_bal_val = 0.0
+            raw_op_bal = get_val("opening_balance")
+            if raw_op_bal:
+                try:
+                    op_bal_val = float(raw_op_bal.replace(",", ""))
+                except ValueError:
+                    errors.append(CustomerImportRowError(row=row_idx, reason="Invalid Opening Balance value"))
+                    failed_count += 1
+                    continue
+
+            cred_lim_val = None
+            raw_cred_lim = get_val("credit_limit")
+            if raw_cred_lim:
+                try:
+                    cred_lim_val = float(raw_cred_lim.replace(",", ""))
+                except ValueError:
+                    errors.append(CustomerImportRowError(row=row_idx, reason="Invalid Credit Limit value"))
+                    failed_count += 1
+                    continue
+
+            # Check duplicate by phone number (Section 7.4)
+            existing = await self.customer_repo.get_by_phone(tenant_id, phone)
+            if existing:
+                skipped_count += 1
+                continue
+
+            bal_type = get_val("opening_balance_type") or "Debit"
+            if bal_type.capitalize() in ("Debit", "Credit"):
+                bal_type = bal_type.capitalize()
+            else:
+                bal_type = "Debit"
+
+            cust_type = get_val("customer_type") or "Individual"
+            if cust_type.capitalize() in ("Individual", "Business"):
+                cust_type = cust_type.capitalize()
+            else:
+                cust_type = "Individual"
+
+            new_cust = Customer(
+                tenant_id=tenant_id,
+                name=name,
+                phone=phone,
+                email=email,
+                customer_type=cust_type,
+                company=get_val("company"),
+                billing_address=get_val("billing_address"),
+                city=get_val("city"),
+                state=get_val("state"),
+                pincode=get_val("pincode"),
+                gstin=get_val("gstin"),
+                pan=get_val("pan"),
+                opening_balance=op_bal_val,
+                opening_balance_type=bal_type,
+                credit_limit=cred_lim_val,
+                notes=get_val("notes"),
+            )
+            await self.customer_repo.create(new_cust)
+            imported_count += 1
+
+        await log_audit_event(
+            self.db,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action="crm.customer.import",
+            entity_type="customer",
+            entity_id="batch_import",
+            details={
+                "imported_count": imported_count,
+                "skipped_count": skipped_count,
+                "failed_count": failed_count,
+            },
+            ip_address=ip_address,
+        )
+        await self.db.commit()
+
+        return CustomerImportSummary(
+            imported_count=imported_count,
+            skipped_count=skipped_count,
+            failed_count=failed_count,
+            errors=errors,
+        )
+
+    def generate_sample_customer_template(self) -> str:
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "Customer Name *",
+            "Mobile Number *",
+            "Email",
+            "Customer Type",
+            "Company Name",
+            "Billing Address",
+            "City",
+            "State",
+            "Pincode",
+            "GSTIN",
+            "PAN",
+            "Opening Balance",
+            "Balance Type",
+            "Credit Limit",
+            "Notes",
+        ])
+        writer.writerow([
+            "Ramesh Traders",
+            "9876543210",
+            "ramesh@example.com",
+            "Business",
+            "Ramesh Enterprises",
+            "123 Market Street",
+            "Mumbai",
+            "Maharashtra",
+            "400001",
+            "27AAAAA0000A1Z5",
+            "ABCDE1234F",
+            "5000",
+            "Debit",
+            "50000",
+            "Sample customer record from import template",
+        ])
+        return output.getvalue()

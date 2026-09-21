@@ -30,7 +30,10 @@ export function QuotationModal({ isOpen, onClose, onSuccess }: QuotationModalPro
 
   useEffect(() => {
     if (isOpen) {
-      crmApi.getCustomers().then(setCustomers).catch(() => {});
+      crmApi.getCustomers().then((res) => {
+        if (Array.isArray(res)) setCustomers(res);
+        else if (res && 'items' in res) setCustomers(res.items);
+      }).catch(() => {});
     }
   }, [isOpen]);
 

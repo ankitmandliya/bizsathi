@@ -239,17 +239,60 @@ class CustomerRepository(TenantRepository[Customer]):
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 
-    async def list_customers(self, tenant_id: UUID) -> Sequence[Customer]:
-        stmt = (
-            select(Customer)
-            .where(Customer.tenant_id == tenant_id, Customer.deleted_at.is_(None))
-            .order_by(Customer.created_at.desc())
+    async def get_by_phone(self, tenant_id: UUID, phone: str) -> Customer | None:
+        clean_phone = phone.strip()
+        stmt = select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.phone == clean_phone,
+            Customer.deleted_at.is_(None),
         )
         res = await self.session.execute(stmt)
-        return res.scalars().all()
+        return res.scalar_one_or_none()
+
+    async def list_customers(
+        self,
+        tenant_id: UUID,
+        search: str | None = None,
+        skip: int = 0,
+        limit: int = 50,
+    ) -> tuple[Sequence[Customer], int]:
+        base_query = select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.deleted_at.is_(None),
+        )
+
+        if search and search.strip():
+            pattern = f"%{search.strip()}%"
+            base_query = base_query.where(
+                or_(
+                    Customer.name.ilike(pattern),
+                    Customer.company.ilike(pattern),
+                    Customer.email.ilike(pattern),
+                    Customer.phone.ilike(pattern),
+                    Customer.gstin.ilike(pattern),
+                )
+            )
+
+        count_stmt = select(func.count()).select_from(base_query.subquery())
+        total_res = await self.session.execute(count_stmt)
+        total = total_res.scalar_one() or 0
+
+        paginated_stmt = base_query.order_by(Customer.created_at.desc()).offset(skip).limit(limit)
+        res = await self.session.execute(paginated_stmt)
+        items = res.scalars().all()
+
+        return items, total
 
     async def create(self, customer: Customer) -> Customer:
         self.session.add(customer)
         await self.session.flush()
         await self.session.refresh(customer)
         return customer
+
+    async def soft_delete(self, tenant_id: UUID, customer_id: UUID) -> bool:
+        cust = await self.get_by_id(tenant_id, customer_id)
+        if not cust:
+            return False
+        cust.deleted_at = datetime.now(UTC)
+        await self.session.flush()
+        return True

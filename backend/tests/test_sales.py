@@ -38,7 +38,8 @@ def build_sales_mock_db():
             mock_res.scalar_one_or_none.return_value = matched[0] if matched else None
         elif "customers" in sql_str:
             customers = [o for o in stored_objects if isinstance(o, Customer)]
-            mock_res.scalar_one_or_none.return_value = customers[0] if customers else None
+            matched_c = [c for c in customers if c.id in params]
+            mock_res.scalar_one_or_none.return_value = matched_c[0] if matched_c else (customers[0] if customers else None)
         elif "quotations" in sql_str:
             quotations = [o for o in stored_objects if isinstance(o, Quotation)]
             mock_res.scalars.return_value.all.return_value = quotations
@@ -138,7 +139,8 @@ async def test_sales_payment_flow_and_overpayment_rejection() -> None:
             LineItemCreate(description="Software License", quantity=1.0, rate=10000.0, tax_rate_percent=18.0),
         ],
     )
-    invoice = await service.create_invoice(tenant_id, user_id, invoice_in)
+    invoice, _ = await service.create_invoice(tenant_id, user_id, invoice_in)
+    assert invoice is not None
     assert invoice.total_amount == 11800.0
     assert invoice.amount_due == 11800.0
 

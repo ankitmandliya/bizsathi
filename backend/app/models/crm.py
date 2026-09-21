@@ -1,7 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -124,6 +125,17 @@ class Customer(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
     email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     whatsapp: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    customer_type: Mapped[str] = mapped_column(String(50), default="Individual", nullable=False)
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    state: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    pincode: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    pan: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    opening_balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    opening_balance_type: Mapped[str] = mapped_column(String(20), default="Debit", nullable=False)
+    credit_limit: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     converted_from_lead_id: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("leads.id"), nullable=True)
     assigned_user_id: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)

@@ -157,7 +157,7 @@ class EmployeeRepository(TenantRepository[Employee]):
                 Employee.user_id == user_id,
                 Employee.deleted_at.is_(None),
             )
-            .order_by(Employee.created_at.desc())
+            .order_by(Employee.created_at.asc())
         )
         return res.scalars().first()
 

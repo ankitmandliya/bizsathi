@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, File, Query, Request, Response, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_tenant, get_current_user, require_permission
@@ -11,13 +11,17 @@ from app.schemas.crm import (
     ActivityCreate,
     ActivityResponse,
     ActivityUpdate,
+    CustomerCreate,
+    CustomerImportSummary,
     CustomerResponse,
+    CustomerUpdate,
     DealCreate,
     DealResponse,
     DealUpdate,
     LeadCreate,
     LeadResponse,
     LeadUpdate,
+    PaginatedCustomersResponse,
     PaginatedDealsResponse,
     PaginatedLeadsResponse,
     PipelineStageResponse,
@@ -403,18 +407,110 @@ async def update_activity(
 
 # --- Customers ---
 @router.get(
+    "/customers/template",
+    dependencies=[Depends(require_permission("crm.customer.view"))],
+)
+async def download_customer_sample_template(
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    service = CRMService(db)
+    csv_content = service.generate_sample_customer_template()
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="customer_import_template.csv"'},
+    )
+
+
+@router.post(
+    "/customers/import",
+    response_model=CustomerImportSummary,
+    dependencies=[Depends(require_permission("crm.customer.import"))],
+)
+async def import_customers(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: Annotated[User, Depends(get_current_user)] = None,  # type: ignore[assignment]
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)] = None,  # type: ignore[assignment]
+    db: AsyncSession = Depends(get_db),
+) -> CustomerImportSummary:
+    file_bytes = await file.read()
+    service = CRMService(db)
+    return await service.import_customers(
+        tenant_id=tenant_id,
+        user_id=current_user.id,
+        file_bytes=file_bytes,
+        ip_address=get_client_ip(request),
+    )
+
+
+@router.get(
     "/customers",
-    response_model=list[CustomerResponse],
+    response_model=PaginatedCustomersResponse,
     dependencies=[Depends(require_permission("crm.customer.view"))],
 )
 async def list_customers(
     current_user: Annotated[User, Depends(get_current_user)],
     tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    search: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-) -> list[CustomerResponse]:
+) -> PaginatedCustomersResponse:
     service = CRMService(db)
-    customers = await service.list_customers(tenant_id)
-    return [CustomerResponse.model_validate(c) for c in customers]
+    from app.services.sales import SalesService
+    sales_service = SalesService(db)
+
+    items, total = await service.list_customers(
+        tenant_id=tenant_id,
+        search=search,
+        page=page,
+        limit=limit,
+    )
+
+    response_items = []
+    for c in items:
+        stmt = await sales_service.get_customer_statement(tenant_id, c.id)
+        resp = CustomerResponse.model_validate(c)
+        resp.outstanding_balance = stmt.outstanding_balance
+        response_items.append(resp)
+
+    return PaginatedCustomersResponse(
+        items=response_items,
+        total=total,
+        page=page,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/customers",
+    response_model=CustomerResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("crm.customer.create"))],
+)
+async def create_customer(
+    body: CustomerCreate,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> CustomerResponse:
+    service = CRMService(db)
+    customer = await service.create_customer(
+        tenant_id=tenant_id,
+        user_id=current_user.id,
+        customer_in=body,
+        ip_address=get_client_ip(request),
+    )
+    from app.services.sales import SalesService
+    sales_service = SalesService(db)
+    stmt = await sales_service.get_customer_statement(tenant_id, customer.id)
+    resp = CustomerResponse.model_validate(customer)
+    resp.outstanding_balance = stmt.outstanding_balance
+    return resp
 
 
 @router.get(
@@ -430,4 +526,59 @@ async def get_customer(
 ) -> CustomerResponse:
     service = CRMService(db)
     customer = await service.get_customer(tenant_id, customer_id)
-    return CustomerResponse.model_validate(customer)
+    from app.services.sales import SalesService
+    sales_service = SalesService(db)
+    stmt = await sales_service.get_customer_statement(tenant_id, customer.id)
+    resp = CustomerResponse.model_validate(customer)
+    resp.outstanding_balance = stmt.outstanding_balance
+    return resp
+
+
+@router.put(
+    "/customers/{customer_id}",
+    response_model=CustomerResponse,
+    dependencies=[Depends(require_permission("crm.customer.edit"))],
+)
+async def update_customer(
+    customer_id: UUID,
+    body: CustomerUpdate,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> CustomerResponse:
+    service = CRMService(db)
+    customer = await service.update_customer(
+        tenant_id=tenant_id,
+        user_id=current_user.id,
+        customer_id=customer_id,
+        customer_in=body,
+        ip_address=get_client_ip(request),
+    )
+    from app.services.sales import SalesService
+    sales_service = SalesService(db)
+    stmt = await sales_service.get_customer_statement(tenant_id, customer.id)
+    resp = CustomerResponse.model_validate(customer)
+    resp.outstanding_balance = stmt.outstanding_balance
+    return resp
+
+
+@router.delete(
+    "/customers/{customer_id}",
+    dependencies=[Depends(require_permission("crm.customer.delete"))],
+)
+async def delete_customer(
+    customer_id: UUID,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    service = CRMService(db)
+    await service.delete_customer(
+        tenant_id=tenant_id,
+        user_id=current_user.id,
+        customer_id=customer_id,
+        ip_address=get_client_ip(request),
+    )
+    return {"status": "deleted"}

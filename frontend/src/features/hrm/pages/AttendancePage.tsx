@@ -4,7 +4,7 @@ import {
   Edit2, Calendar as CalendarIcon, List, ChevronLeft, ChevronRight,
   User, Filter
 } from 'lucide-react';
-import { hrmApi, Attendance, Employee, Department } from '../services/hrmApi';
+import { hrmApi, Attendance, Employee, Department, WorkSchedule } from '../services/hrmApi';
 import { getErrorMessage } from '../../../utils/error';
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -44,6 +44,7 @@ function CheckInCard({ employees, onRefresh }: { employees: Employee[]; onRefres
   const [todayAtt, setTodayAtt] = useState<Attendance | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
   const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
@@ -59,6 +60,8 @@ function CheckInCard({ employees, onRefresh }: { employees: Employee[]; onRefres
   }, [employees, selectedEmp]);
 
   useEffect(() => {
+    setError(null);
+    setSuccess(null);
     if (!selectedEmp) { setTodayAtt(null); return; }
     const today = new Date().toISOString().slice(0, 10);
     hrmApi.getAttendance({ employee_id: selectedEmp, date_from: today, date_to: today, limit: 1 })
@@ -72,10 +75,11 @@ function CheckInCard({ employees, onRefresh }: { employees: Employee[]; onRefres
 
   const handleCheckIn = async () => {
     if (!selectedEmp) { setError('Please select an employee first.'); return; }
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setSuccess(null);
     try {
       const att = await hrmApi.checkIn(selectedEmp);
       setTodayAtt(att);
+      setSuccess('Check-in successful!');
       onRefresh();
     } catch (e) { setError(getErrorMessage(e, 'Check-in failed.')); }
     finally { setLoading(false); }
@@ -83,10 +87,11 @@ function CheckInCard({ employees, onRefresh }: { employees: Employee[]; onRefres
 
   const handleCheckOut = async () => {
     if (!todayAtt) return;
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setSuccess(null);
     try {
       const att = await hrmApi.checkOut(todayAtt.id);
       setTodayAtt(att);
+      setSuccess('Check-out successful!');
       onRefresh();
     } catch (e) { setError(getErrorMessage(e, 'Check-out failed.')); }
     finally { setLoading(false); }
@@ -130,7 +135,8 @@ function CheckInCard({ employees, onRefresh }: { employees: Employee[]; onRefres
                 <AttBadge status={todayAtt.status} />
               </div>
             )}
-            {error && <p style={{ color: '#fca5a5', fontSize: 13, marginTop: 8, margin: '8px 0 0' }}>{error}</p>}
+            {success && <p style={{ color: '#4ade80', fontSize: 13, margin: '8px 0 0', fontWeight: 600 }}>{success}</p>}
+            {error && <p style={{ color: '#fca5a5', fontSize: 13, margin: '8px 0 0' }}>{error}</p>}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -218,15 +224,30 @@ function AttendanceCalendarView({
   attendance,
   employees,
   empFilter,
+  workSchedule,
   onSelectEdit,
 }: {
   attendance: Attendance[];
   employees: Employee[];
   empFilter: string;
+  workSchedule: WorkSchedule | null;
   onSelectEdit: (att: Attendance) => void;
 }) {
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(8); // 1-indexed, default August 2026
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth() + 1;
+  const todayDay = today.getDate();
+
+  const [currentYear, setCurrentYear] = useState(todayYear);
+  const [currentMonth, setCurrentMonth] = useState(todayMonth);
+
+  // Parse working days from Business Settings (0=Mon, 1=Tue, ..., 5=Sat, 6=Sun)
+  const workingDaysList = workSchedule?.working_days
+    ? workSchedule.working_days.split(',').map(d => d.trim())
+    : ['0', '1', '2', '3', '4']; // Default Mon-Fri
+
+  // Map JS getDay() (0=Sun, 1=Mon, ..., 6=Sat) to Business Settings day ID ('0'=Mon, ..., '5'=Sat, '6'=Sun)
+  const getWorkDayId = (jsDay: number): string => String((jsDay + 6) % 7);
 
   const prevMonth = () => {
     if (currentMonth === 1) { setCurrentMonth(12); setCurrentYear(y => y - 1); }
@@ -257,6 +278,7 @@ function AttendanceCalendarView({
   }
 
   const selectedEmpName = employees.find(e => e.id === empFilter)?.name;
+  const isCurrentMonthView = currentYear === todayYear && currentMonth === todayMonth;
 
   return (
     <div style={{ background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--line)', padding: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
@@ -280,7 +302,19 @@ function AttendanceCalendarView({
           <button onClick={() => { setCurrentYear(2026); setCurrentMonth(8); }} style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--panel-alt)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
             Aug 2026
           </button>
-          <button onClick={() => { const now = new Date(); setCurrentYear(now.getFullYear()); setCurrentMonth(now.getMonth() + 1); }} style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--panel-alt)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          <button
+            onClick={() => { const now = new Date(); setCurrentYear(now.getFullYear()); setCurrentMonth(now.getMonth() + 1); }}
+            style={{
+              padding: '7px 12px',
+              borderRadius: 8,
+              border: isCurrentMonthView ? '1.5px solid #2563eb' : '1px solid var(--line)',
+              background: isCurrentMonthView ? 'rgba(37, 99, 235, 0.1)' : 'var(--panel-alt)',
+              color: isCurrentMonthView ? '#2563eb' : 'var(--text)',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
             Today
           </button>
           <button onClick={nextMonth} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--panel-alt)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
@@ -291,11 +325,14 @@ function AttendanceCalendarView({
 
       {/* Days of Week Header */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8, textAlign: 'center' }}>
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
-          <div key={day} style={{ fontSize: 12, fontWeight: 700, color: idx === 0 || idx === 6 ? '#ef4444' : 'var(--muted)', textTransform: 'uppercase', padding: '6px 0' }}>
-            {day}
-          </div>
-        ))}
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => {
+          const isWorking = workingDaysList.includes(getWorkDayId(idx));
+          return (
+            <div key={day} style={{ fontSize: 12, fontWeight: 700, color: !isWorking ? '#ef4444' : 'var(--muted)', textTransform: 'uppercase', padding: '6px 0' }}>
+              {day}
+            </div>
+          );
+        })}
       </div>
 
       {/* Calendar Grid Matrix */}
@@ -306,7 +343,11 @@ function AttendanceCalendarView({
           }
 
           const dayOfWeek = (startingDayOfWeek + dayNum - 1) % 7;
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const dayId = getWorkDayId(dayOfWeek);
+          const isWorkingDay = workingDaysList.includes(dayId);
+          const isOffDay = !isWorkingDay;
+          const isToday = isCurrentMonthView && dayNum === todayDay;
+
           const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
 
           // Attendance for this day
@@ -325,9 +366,16 @@ function AttendanceCalendarView({
             <div key={dateStr}
               style={{
                 minHeight: 95,
-                background: isWeekend ? 'rgba(0,0,0,0.02)' : 'var(--bg-card)',
+                background: isToday
+                  ? 'rgba(37, 99, 235, 0.08)'
+                  : isOffDay
+                  ? 'rgba(0,0,0,0.02)'
+                  : 'var(--bg-card)',
                 borderRadius: 10,
-                border: '1px solid var(--line)',
+                border: isToday
+                  ? '2px solid #2563eb'
+                  : '1px solid var(--line)',
+                boxShadow: isToday ? '0 0 12px rgba(37, 99, 235, 0.25)' : 'none',
                 padding: 8,
                 display: 'flex',
                 flexDirection: 'column',
@@ -335,10 +383,17 @@ function AttendanceCalendarView({
                 transition: 'all 0.15s ease',
               }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: isWeekend ? '#94a3b8' : 'var(--text)' }}>
-                  {dayNum}
-                </span>
-                {isWeekend && <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Off</span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: isToday ? '#2563eb' : isOffDay ? '#94a3b8' : 'var(--text)' }}>
+                    {dayNum}
+                  </span>
+                  {isToday && (
+                    <span style={{ fontSize: 9, fontWeight: 800, background: '#2563eb', color: '#ffffff', padding: '1px 5px', borderRadius: 4, letterSpacing: '0.05em' }}>
+                      TODAY
+                    </span>
+                  )}
+                </div>
+                {isOffDay && <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Off</span>}
               </div>
 
               <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -354,7 +409,7 @@ function AttendanceCalendarView({
                       )}
                     </div>
                   ) : (
-                    !isWeekend && <span style={{ fontSize: 11, color: '#cbd5e1' }}>—</span>
+                    !isOffDay && <span style={{ fontSize: 11, color: '#cbd5e1' }}>—</span>
                   )
                 ) : (
                   // Summary All Employees View
@@ -380,6 +435,7 @@ export function AttendancePage() {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [workSchedule, setWorkSchedule] = useState<WorkSchedule | null>(null);
   const [loading, setLoading] = useState(true);
   const [editAtt, setEditAtt] = useState<Attendance | null>(null);
   const [empFilter, setEmpFilter] = useState('');
@@ -387,21 +443,23 @@ export function AttendancePage() {
   const [deptFilter, setDeptFilter] = useState('');
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
 
-  // Set default date range to cover August 2026 (seeded test month) through current month
+  // Set default date range to cover August 2026 through current month
   const [dateFrom, setDateFrom] = useState('2026-08-01');
   const [dateTo, setDateTo] = useState('2026-09-30');
 
   const fetchAttendance = useCallback(async () => {
     setLoading(true);
     try {
-      const [attData, emps, depts] = await Promise.all([
+      const [attData, emps, depts, sched] = await Promise.all([
         hrmApi.getAttendance({ employee_id: empFilter || undefined, date_from: dateFrom, date_to: dateTo, status: statusFilter || undefined, department_id: deptFilter || undefined, limit: 500 }),
         hrmApi.getEmployees({ limit: 200 }),
         hrmApi.getDepartments(),
+        hrmApi.getWorkSchedule(),
       ]);
       setAttendance(attData.items);
       setEmployees(emps.items);
       setDepartments(depts);
+      setWorkSchedule(sched);
     } catch { /* silent */ }
     finally { setLoading(false); }
   }, [empFilter, statusFilter, deptFilter, dateFrom, dateTo]);
@@ -491,6 +549,7 @@ export function AttendancePage() {
           attendance={attendance}
           employees={employees}
           empFilter={empFilter}
+          workSchedule={workSchedule}
           onSelectEdit={setEditAtt}
         />
       ) : (

@@ -61,7 +61,7 @@ def build_mock_db_session():
         elif "customers" in sql_str:
             customers = [o for o in stored_objects if isinstance(o, Customer) and getattr(o, "deleted_at", None) is None]
             mock_res.scalars.return_value.all.return_value = customers
-            matched_c = [c for c in customers if c.id in params and c.tenant_id in params]
+            matched_c = [c for c in customers if (c.id in params or c.phone in params) and c.tenant_id in params]
             mock_res.scalar_one_or_none.return_value = matched_c[0] if matched_c else None
         else:
             mock_res.scalars.return_value.all.return_value = []
@@ -130,7 +130,7 @@ async def test_crm_service_lead_crud_and_conversion() -> None:
     assert refetched_lead.converted_customer_id is not None
 
     # Check customer created
-    customers = await service.list_customers(tenant_id)
+    customers, _ = await service.list_customers(tenant_id)
     assert len(customers) == 1
     assert customers[0].name == "Acme Corp Lead"
     assert customers[0].converted_from_lead_id == lead.id
@@ -155,7 +155,7 @@ async def test_crm_duplicate_lead_conversion_prevented() -> None:
     cust2 = await service.convert_lead_to_customer(tenant_id, user_id, lead.id)
     assert cust2.id == cust1.id
 
-    customers = await service.list_customers(tenant_id)
+    customers, total = await service.list_customers(tenant_id)
     assert len(customers) == 1
 
 
