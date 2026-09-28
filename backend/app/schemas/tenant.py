@@ -20,6 +20,7 @@ class TenantCreate(TenantBase):
 
 
 class TenantSettingsUpdate(BaseModel):
+    name: str | None = None
     logo_url: str | None = None
     whatsapp_enabled: bool = False
     whatsapp_business_number: str | None = None

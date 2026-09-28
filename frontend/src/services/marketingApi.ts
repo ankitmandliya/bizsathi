@@ -80,6 +80,7 @@ export interface CampaignDetail extends Campaign {
 }
 
 export interface TenantChannelSettings {
+  name?: string | null;
   logo_url?: string | null;
   whatsapp_enabled: boolean;
   whatsapp_business_number?: string | null;
@@ -91,31 +92,31 @@ export interface TenantChannelSettings {
 export const marketingApi = {
   // Templates
   getTemplates: async (): Promise<Template[]> => {
-    const response = await apiClient.get('/marketing/templates');
+    const response = await apiClient.get('/api/v1/marketing/templates');
     return response.data;
   },
 
   createTemplate: async (data: TemplateCreateInput): Promise<Template> => {
-    const response = await apiClient.post('/marketing/templates', data);
+    const response = await apiClient.post('/api/v1/marketing/templates', data);
     return response.data;
   },
 
   updateTemplate: async (id: string, data: Partial<TemplateCreateInput>): Promise<Template> => {
-    const response = await apiClient.put(`/marketing/templates/${id}`, data);
+    const response = await apiClient.put(`/api/v1/marketing/templates/${id}`, data);
     return response.data;
   },
 
   deleteTemplate: async (id: string): Promise<void> => {
-    await apiClient.delete(`/marketing/templates/${id}`);
+    await apiClient.delete(`/api/v1/marketing/templates/${id}`);
   },
 
   submitTemplateApproval: async (id: string): Promise<Template> => {
-    const response = await apiClient.post(`/marketing/templates/${id}/submit-approval`);
+    const response = await apiClient.post(`/api/v1/marketing/templates/${id}/submit-approval`);
     return response.data;
   },
 
   checkTemplateApproval: async (id: string, statusOverride?: string): Promise<Template> => {
-    const response = await apiClient.post(`/marketing/templates/${id}/check-approval`, null, {
+    const response = await apiClient.post(`/api/v1/marketing/templates/${id}/check-approval`, null, {
       params: { status_override: statusOverride },
     });
     return response.data;
@@ -123,34 +124,39 @@ export const marketingApi = {
 
   // Audience
   getAudienceCount: async (request: AudienceCountRequest): Promise<AudienceCountResponse> => {
-    const response = await apiClient.post('/marketing/audience-count', request);
+    const response = await apiClient.post('/api/v1/marketing/audience-count', request);
     return response.data;
   },
 
   // Campaigns
   getCampaigns: async (): Promise<Campaign[]> => {
-    const response = await apiClient.get('/marketing/campaigns');
+    const response = await apiClient.get('/api/v1/marketing/campaigns');
     return response.data;
   },
 
   createCampaign: async (data: CampaignCreateInput): Promise<Campaign> => {
-    const response = await apiClient.post('/marketing/campaigns', data);
+    const response = await apiClient.post('/api/v1/marketing/campaigns', data);
     return response.data;
   },
 
   getCampaignDetail: async (id: string): Promise<CampaignDetail> => {
-    const response = await apiClient.get(`/marketing/campaigns/${id}`);
+    const response = await apiClient.get(`/api/v1/marketing/campaigns/${id}`);
     return response.data;
   },
 
   sendCampaign: async (id: string): Promise<Campaign> => {
-    const response = await apiClient.post(`/marketing/campaigns/${id}/send`);
+    const response = await apiClient.post(`/api/v1/marketing/campaigns/${id}/send`);
     return response.data;
   },
 
   // Tenant Channels
+  getChannelSettings: async (): Promise<TenantChannelSettings> => {
+    const response = await apiClient.get('/api/v1/tenants/current');
+    return response.data;
+  },
+
   updateChannelSettings: async (data: TenantChannelSettings) => {
-    const response = await apiClient.put('/tenants/settings/channels', data);
+    const response = await apiClient.put('/api/v1/tenants/settings/channels', data);
     return response.data;
   },
 };

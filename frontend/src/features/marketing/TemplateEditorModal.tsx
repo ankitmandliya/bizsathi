@@ -92,7 +92,7 @@ export function TemplateEditorModal({ template, onClose, onSaved }: TemplateEdit
     return text
       .replace(/\{\{customer_name\}\}/g, 'Rajesh Kumar')
       .replace(/\{\{customer_company\}\}/g, 'Acme Traders')
-      .replace(/\{\{business_name\}\}/g, 'BizSathi')
+      .replace(/\{\{business_name\}\}/g, localStorage.getItem('bizsathi.business_name') || 'BizSathi')
       .replace(/\{\{invoice_number\}\}/g, 'INV-2026-0042')
       .replace(/\{\{amount\}\}/g, '₹24,500')
       .replace(/\{\{due_date\}\}/g, '2026-10-15');

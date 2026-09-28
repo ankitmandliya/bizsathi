@@ -128,7 +128,8 @@ export function InvoicesListPage() {
     const dueDateStr = new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const issueDateStr = new Date(inv.issue_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-    const message = `Hello *${customerName}*,\n\nHere is your Sales Invoice & Statement summary from BizSathi:\n\n*Invoice No:* ${inv.invoice_number}\n*Invoice Date:* ${issueDateStr}\n*Due Date:* ${dueDateStr}\n\n*Total Amount:* ₹${inv.total_amount.toLocaleString('en-IN')}\n*Amount Paid:* ₹${inv.amount_paid.toLocaleString('en-IN')}\n*Remaining Due:* ₹${inv.amount_due.toLocaleString('en-IN')}\n\n*Download PDF Statement:* ${pdfUrl}\n\nPlease let us know if you need any assistance.\nThank you!`;
+    const businessName = localStorage.getItem('bizsathi.business_name') || 'BizSathi';
+    const message = `Hello *${customerName}*,\n\nHere is your Sales Invoice & Statement summary from ${businessName}:\n\n*Invoice No:* ${inv.invoice_number}\n*Invoice Date:* ${issueDateStr}\n*Due Date:* ${dueDateStr}\n\n*Total Amount:* ₹${inv.total_amount.toLocaleString('en-IN')}\n*Amount Paid:* ₹${inv.amount_paid.toLocaleString('en-IN')}\n*Remaining Due:* ₹${inv.amount_due.toLocaleString('en-IN')}\n\n*Download PDF Statement:* ${pdfUrl}\n\nPlease let us know if you need any assistance.\nThank you!`;
 
     const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');

@@ -4,7 +4,7 @@ from app.models.hrm import Employee, Payslip
 from app.models.sales import Invoice, Payment, Quotation
 
 
-def generate_quotation_pdf_html(quotation: Quotation, customer: Customer) -> str:
+def generate_quotation_pdf_html(quotation: Quotation, customer: Customer, business_name: str = "BizSathi") -> str:
     items_rows = "".join(
         f"""
         <tr>
@@ -43,7 +43,7 @@ def generate_quotation_pdf_html(quotation: Quotation, customer: Customer) -> str
 <body>
     <div class="header">
         <div>
-            <div class="brand">BizSathi</div>
+            <div class="brand">{business_name}</div>
             <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">SALES QUOTATION & PROPOSAL</p>
         </div>
         <div style="text-align: right;">
@@ -103,7 +103,7 @@ def generate_quotation_pdf_html(quotation: Quotation, customer: Customer) -> str
 </html>"""
 
 
-def generate_invoice_pdf_html(invoice: Invoice, customer: Customer) -> str:
+def generate_invoice_pdf_html(invoice: Invoice, customer: Customer, business_name: str = "BizSathi") -> str:
     items_rows = "".join(
         f"""
         <tr>
@@ -143,7 +143,7 @@ def generate_invoice_pdf_html(invoice: Invoice, customer: Customer) -> str:
 <body>
     <div class="header">
         <div>
-            <div class="brand">BizSathi</div>
+            <div class="brand">{business_name}</div>
             <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">TAX INVOICE</p>
         </div>
         <div style="text-align: right;">
@@ -212,7 +212,7 @@ def generate_invoice_pdf_html(invoice: Invoice, customer: Customer) -> str:
 </html>"""
 
 
-def generate_payment_receipt_pdf_html(payment: Payment, invoice: Invoice, customer: Customer) -> str:
+def generate_payment_receipt_pdf_html(payment: Payment, invoice: Invoice, customer: Customer, business_name: str = "BizSathi") -> str:
     payment_date_str = payment.payment_date.strftime("%d %b %Y")
 
     return f"""<!DOCTYPE html>
@@ -231,7 +231,7 @@ def generate_payment_receipt_pdf_html(payment: Payment, invoice: Invoice, custom
 <body>
     <div class="header">
         <div>
-            <div class="brand">BizSathi</div>
+            <div class="brand">{business_name}</div>
             <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">PAYMENT RECEIPT</p>
         </div>
         <div style="text-align: right;">
@@ -268,7 +268,7 @@ def generate_payment_receipt_pdf_html(payment: Payment, invoice: Invoice, custom
 </html>"""
 
 
-def generate_payslip_pdf_html(payslip: Payslip, employee: Employee | None, payroll_period: str) -> str:
+def generate_payslip_pdf_html(payslip: Payslip, employee: Employee | None, payroll_period: str, business_name: str = "BizSathi") -> str:
     """Generate a clean payslip PDF HTML for Indian SMB employees."""
     def safe_float(val: Any) -> float:
         try:
@@ -318,7 +318,7 @@ def generate_payslip_pdf_html(payslip: Payslip, employee: Employee | None, payro
 <body>
     <div class="header">
         <div>
-            <div class="brand">BizSathi</div>
+            <div class="brand">{business_name}</div>
             <p style="color: #64748b; margin: 4px 0 0 0;">SALARY SLIP — {payroll_period}</p>
         </div>
         <div style="text-align: right;">

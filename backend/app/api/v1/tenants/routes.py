@@ -28,6 +28,20 @@ async def list_user_tenants(
     return [TenantResponse.model_validate(t) for t in tenants]
 
 
+@router.get("/current", response_model=TenantResponse)
+async def get_current_tenant_info(
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> TenantResponse:
+    stmt = select(Tenant).where(Tenant.id == tenant_id)
+    res = await db.execute(stmt)
+    tenant = res.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+    return TenantResponse.model_validate(tenant)
+
+
 @router.put("/settings/channels", response_model=TenantResponse)
 async def update_tenant_channels_settings(
     body: TenantSettingsUpdate,
@@ -41,6 +55,8 @@ async def update_tenant_channels_settings(
     if not tenant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
 
+    if body.name and body.name.strip():
+        tenant.name = body.name.strip()
     tenant.logo_url = body.logo_url
     tenant.whatsapp_enabled = body.whatsapp_enabled
     tenant.whatsapp_business_number = body.whatsapp_business_number

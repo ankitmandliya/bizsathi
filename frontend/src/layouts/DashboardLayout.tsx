@@ -104,6 +104,15 @@ export default function DashboardLayout() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isPlainEmployee, setIsPlainEmployee] = useState(false);
   const [profile, setProfile] = useState<{ name?: string; email?: string; designation?: { name: string } } | null>(null);
+  const [businessName, setBusinessName] = useState(() => localStorage.getItem('bizsathi.business_name') || 'BizSathi');
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setBusinessName(localStorage.getItem('bizsathi.business_name') || 'BizSathi');
+    };
+    window.addEventListener('business_name_updated', handleUpdate);
+    return () => window.removeEventListener('business_name_updated', handleUpdate);
+  }, []);
 
   useEffect(() => {
     hrmApi.getMyProfile()
@@ -171,7 +180,7 @@ export default function DashboardLayout() {
       <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="brand-block" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div className="brand-title">BizSathi</div>
+            <div className="brand-title">{businessName}</div>
             <span className="brand-subtitle">Your business, made simple.</span>
           </div>
           <button

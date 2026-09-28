@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import check_has_hr_access, get_current_tenant, get_current_user, require_permission
 from app.core.database import get_db
-from app.models.domain import User
+from app.models.domain import Tenant, User
 from app.schemas.hrm import (
     AttendanceCheckIn,
     AttendanceCheckOut,
@@ -907,7 +907,11 @@ async def get_payslip_pdf(
 
     payroll = await service.payroll_repo.get_by_id(tenant_id, payslip.payroll_id)
     period = payroll.payroll_period if payroll else "N/A"
-    html = generate_payslip_pdf_html(payslip, payslip.employee, period)
+
+    tenant = await db.get(Tenant, tenant_id)
+    business_name = tenant.name if (tenant and tenant.name) else "BizSathi"
+
+    html = generate_payslip_pdf_html(payslip, payslip.employee, period, business_name=business_name)
     emp_name = (payslip.employee.name if payslip.employee else "employee").replace(" ", "_")
     return Response(
         content=html,

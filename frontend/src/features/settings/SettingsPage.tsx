@@ -39,6 +39,7 @@ export function SettingsPage() {
   const [payday, setPayday] = useState(1);
 
   // Communication & Branding State
+  const [businessName, setBusinessName] = useState(localStorage.getItem('bizsathi.business_name') || 'BizSathi');
   const [logoUrl, setLogoUrl] = useState('');
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [whatsappNumber, setWhatsappNumber] = useState('');
@@ -71,10 +72,11 @@ export function SettingsPage() {
   const loadData = async () => {
     try {
       setMessage(null);
-      const [sched, hols, lTypes] = await Promise.all([
+      const [sched, hols, lTypes, channels] = await Promise.all([
         hrmApi.getWorkSchedule(),
         hrmApi.getHolidays(new Date().getFullYear()),
         hrmApi.getLeaveTypes(),
+        marketingApi.getChannelSettings().catch(() => null),
       ]);
 
       if (sched) {
@@ -84,6 +86,18 @@ export function SettingsPage() {
         setLateGrace(sched.late_after_minutes ?? 15);
         setHalfDayThreshold(sched.half_day_threshold_hours ?? 4);
         setPayday(sched.payday ?? 1);
+      }
+      if (channels) {
+        if (channels.name) {
+          setBusinessName(channels.name);
+          localStorage.setItem('bizsathi.business_name', channels.name);
+        }
+        setLogoUrl(channels.logo_url || '');
+        setWhatsappEnabled(channels.whatsapp_enabled ?? false);
+        setWhatsappNumber(channels.whatsapp_business_number || '');
+        setWhatsappApiKey(channels.whatsapp_api_key || '');
+        setEmailEnabled(channels.email_enabled ?? false);
+        setEmailSenderName(channels.email_sender_name || '');
       }
       setHolidays(hols || []);
       setLeaveTypes(lTypes || []);
@@ -172,6 +186,7 @@ export function SettingsPage() {
     setMessage(null);
     try {
       await marketingApi.updateChannelSettings({
+        name: businessName || null,
         logo_url: logoUrl || null,
         whatsapp_enabled: whatsappEnabled,
         whatsapp_business_number: whatsappNumber || null,
@@ -179,6 +194,10 @@ export function SettingsPage() {
         email_enabled: emailEnabled,
         email_sender_name: emailSenderName || null,
       });
+      if (businessName) {
+        localStorage.setItem('bizsathi.business_name', businessName);
+        window.dispatchEvent(new Event('business_name_updated'));
+      }
       setMessage({ text: 'Branding & Communication Settings saved successfully!', type: 'success' });
     } catch (err: unknown) {
       setMessage({ text: getErrorMessage(err, 'Failed to save communication channels'), type: 'error' });
@@ -485,6 +504,24 @@ export function SettingsPage() {
           <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <MessageSquare size={18} color="#4f46e5" /> Communication Channels & Branding Settings
           </h2>
+
+          {/* Business Name */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '6px' }}>
+              BUSINESS NAME
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Ramesh Traders / BizSathi"
+              value={businessName}
+              onChange={e => setBusinessName(e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--line)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '14px', outline: 'none' }}
+              required
+            />
+            <span style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>
+              This business name will be used dynamically on your invoices, quotations, receipts, payslips, and customer messages.
+            </span>
+          </div>
 
           {/* Logo URL */}
           <div style={{ marginBottom: '24px' }}>

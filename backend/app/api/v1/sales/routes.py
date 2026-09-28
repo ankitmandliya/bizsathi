@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_tenant, get_current_user, require_permission
 from app.core.database import get_db
-from app.models.domain import User
+from app.models.domain import Tenant, User
 from app.schemas.sales import (
     CreditLimitWarningResponse,
     CustomerStatementResponse,
@@ -170,7 +170,10 @@ async def get_quotation_pdf(
         from app.models.crm import Customer as CustomerModel
         customer = CustomerModel(name="Customer", email="")
 
-    html = generate_quotation_pdf_html(quotation, customer)
+    tenant = await db.get(Tenant, tenant_id)
+    business_name = tenant.name if (tenant and tenant.name) else "BizSathi"
+
+    html = generate_quotation_pdf_html(quotation, customer, business_name=business_name)
     return Response(content=html, media_type="text/html")
 
 
@@ -312,7 +315,10 @@ async def get_invoice_pdf(
         from app.models.crm import Customer
         customer = Customer(name="Customer", email="")
 
-    html = generate_invoice_pdf_html(invoice, customer)
+    tenant = await db.get(Tenant, tenant_id)
+    business_name = tenant.name if (tenant and tenant.name) else "BizSathi"
+
+    html = generate_invoice_pdf_html(invoice, customer, business_name=business_name)
     return Response(content=html, media_type="text/html")
 
 
@@ -456,7 +462,10 @@ async def get_payment_receipt_pdf(
         from app.models.crm import Customer
         customer = Customer(name="Customer", email="")
 
-    html = generate_payment_receipt_pdf_html(payment, invoice, customer)
+    tenant = await db.get(Tenant, tenant_id)
+    business_name = tenant.name if (tenant and tenant.name) else "BizSathi"
+
+    html = generate_payment_receipt_pdf_html(payment, invoice, customer, business_name=business_name)
     return Response(content=html, media_type="text/html")
 
 
