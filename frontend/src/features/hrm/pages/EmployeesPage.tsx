@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { hrmApi, Employee, Department, Designation, SalaryStructure } from '../services/hrmApi';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   'Active': { bg: '#dcfce7', text: '#15803d', dot: '#22c55e' },
@@ -533,9 +534,12 @@ export function EmployeesPage() {
           </h1>
           <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Manage your team — add, edit, set salaries, and configure login access</p>
         </div>
-        <button onClick={() => setIsAddOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
-          <Plus size={16} /> Add Employee
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AuditLogButton entityTypes={['employee']} title="Employees Audit Log" />
+          <button onClick={() => setIsAddOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
+            <Plus size={16} /> Add Employee
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

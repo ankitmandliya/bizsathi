@@ -27,6 +27,7 @@ import { ExpenseModal } from './ExpenseModal';
 import { CategoriesModal } from './CategoriesModal';
 import { ExpenseDetailModal } from './ExpenseDetailModal';
 import { getErrorMessage } from '../../utils/error';
+import { AuditLogButton } from '../../components/common/AuditLogButton';
 
 type DatePreset = 'current_month' | 'previous_month' | 'current_quarter' | 'current_year' | 'custom';
 
@@ -232,7 +233,8 @@ export function ExpensesPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <AuditLogButton entityTypes={['expense', 'expense_category']} title="Expenses Audit Log" />
           <button
             type="button"
             onClick={() => setShowCategoriesModal(true)}

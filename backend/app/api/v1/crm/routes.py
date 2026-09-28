@@ -31,8 +31,7 @@ from app.services.crm import CRMService
 router = APIRouter(prefix="/crm", tags=["crm"])
 
 
-def get_client_ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
+from app.services.audit import get_client_ip, get_user_agent
 
 
 @router.get("/status")
@@ -118,6 +117,7 @@ async def create_lead(
         user_id=current_user.id,
         lead_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return LeadResponse.model_validate(lead)
 
@@ -158,6 +158,7 @@ async def update_lead(
         lead_id=lead_id,
         lead_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return LeadResponse.model_validate(lead)
 
@@ -179,6 +180,7 @@ async def delete_lead(
         user_id=current_user.id,
         lead_id=lead_id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return {"status": "deleted"}
 
@@ -201,6 +203,7 @@ async def convert_lead(
         user_id=current_user.id,
         lead_id=lead_id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return CustomerResponse.model_validate(customer)
 
@@ -258,6 +261,7 @@ async def create_deal(
         user_id=current_user.id,
         deal_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return DealResponse.model_validate(deal)
 
@@ -298,6 +302,7 @@ async def update_deal(
         deal_id=deal_id,
         deal_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return DealResponse.model_validate(deal)
 
@@ -319,6 +324,7 @@ async def delete_deal(
         user_id=current_user.id,
         deal_id=deal_id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return {"status": "deleted"}
 
@@ -443,6 +449,7 @@ async def import_customers(
         user_id=current_user.id,
         file_bytes=file_bytes,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
 
 
@@ -504,6 +511,7 @@ async def create_customer(
         user_id=current_user.id,
         customer_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     from app.services.sales import SalesService
     sales_service = SalesService(db)
@@ -554,6 +562,7 @@ async def update_customer(
         customer_id=customer_id,
         customer_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     from app.services.sales import SalesService
     sales_service = SalesService(db)
@@ -580,5 +589,6 @@ async def delete_customer(
         user_id=current_user.id,
         customer_id=customer_id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return {"status": "deleted"}

@@ -26,7 +26,7 @@ export interface Expense {
   tenant_id: string;
   category_id: string;
   category_name: string;
-  title: str;
+  title: string;
   description?: string | null;
   amount: number;
   expense_date: string;

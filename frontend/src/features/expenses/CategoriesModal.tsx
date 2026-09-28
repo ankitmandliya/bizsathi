@@ -82,11 +82,8 @@ export function CategoriesModal({ isOpen, onClose, categories, onRefresh }: Cate
   };
 
   const handleDelete = async (cat: ExpenseCategory) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete/deactivate "${cat.name}"? If expenses reference this category, it will be deactivated to protect historical data.`
-      )
-    ) {
+    setError(null);
+    if (!confirm(`Are you sure you want to delete category "${cat.name}"?`)) {
       return;
     }
 
@@ -94,7 +91,9 @@ export function CategoriesModal({ isOpen, onClose, categories, onRefresh }: Cate
       await expensesApi.deleteCategory(cat.id);
       onRefresh();
     } catch (err: unknown) {
-      alert(getErrorMessage(err, 'Failed to delete category'));
+      const msg = getErrorMessage(err, 'Failed to delete category');
+      setError(msg);
+      alert(msg);
     }
   };
 
@@ -144,6 +143,26 @@ export function CategoriesModal({ isOpen, onClose, categories, onRefresh }: Cate
         </div>
 
         <div style={{ padding: '24px' }}>
+          {error && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '8px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#991b1b',
+                fontSize: '13px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <AlertCircle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Top CTAs */}
           {!showAddForm && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
@@ -184,25 +203,6 @@ export function CategoriesModal({ isOpen, onClose, categories, onRefresh }: Cate
               <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 700 }}>
                 {editingCatId ? 'Edit Category' : 'Create New Category'}
               </h3>
-
-              {error && (
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    background: '#fef2f2',
-                    color: '#991b1b',
-                    fontSize: '12px',
-                    marginBottom: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <AlertCircle size={14} />
-                  <span>{error}</span>
-                </div>
-              )}
 
               <div style={{ marginBottom: '12px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>

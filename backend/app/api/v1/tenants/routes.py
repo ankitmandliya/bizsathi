@@ -42,9 +42,13 @@ async def get_current_tenant_info(
     return TenantResponse.model_validate(tenant)
 
 
+from fastapi import Request
+from app.services.audit import compute_changes, get_client_ip, get_user_agent, log_audit_event
+
 @router.put("/settings/channels", response_model=TenantResponse)
 async def update_tenant_channels_settings(
     body: TenantSettingsUpdate,
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     tenant_id: Annotated[UUID, Depends(get_current_tenant)],
     db: AsyncSession = Depends(get_db),
@@ -54,6 +58,9 @@ async def update_tenant_channels_settings(
     tenant = res.scalar_one_or_none()
     if not tenant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+
+    tracked = ["name", "logo_url", "whatsapp_enabled", "whatsapp_business_number", "email_enabled", "email_sender_name"]
+    before_dict = {f: getattr(tenant, f, None) for f in tracked}
 
     if body.name and body.name.strip():
         tenant.name = body.name.strip()
@@ -65,18 +72,25 @@ async def update_tenant_channels_settings(
     tenant.email_enabled = body.email_enabled
     tenant.email_sender_name = body.email_sender_name
 
-    audit = AuditLog(
+    changes = compute_changes(before_dict, tenant, tracked)
+
+    await log_audit_event(
+        db,
         tenant_id=tenant_id,
         user_id=current_user.id,
         action="tenant.settings.update_channels",
         entity_type="Tenant",
         entity_id=str(tenant.id),
+        entity_label=tenant.name,
+        changes=changes,
         details={
             "whatsapp_enabled": tenant.whatsapp_enabled,
             "email_enabled": tenant.email_enabled,
         },
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+        commit=False,
     )
-    db.add(audit)
 
     await db.commit()
     await db.refresh(tenant)

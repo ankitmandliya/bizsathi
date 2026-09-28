@@ -13,6 +13,7 @@ import { CustomerModal } from '../components/CustomerModal';
 import { CustomerImportModal } from '../components/CustomerImportModal';
 import { CustomerStatementModal } from '../../sales/components/CustomerStatementModal';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 export function CustomersListPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -80,7 +81,8 @@ export function CustomersListPage() {
           subtitle="Directory of customers, direct contacts, opening balances, and imported lists."
         />
 
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <AuditLogButton entityTypes={['customer']} title="Customers Audit Log" />
           <button
             type="button"
             onClick={() => setIsImportModalOpen(true)}

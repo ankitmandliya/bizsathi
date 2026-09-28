@@ -987,4 +987,186 @@ a { color: var(--primary); text-decoration: none; }
   }
 }
 
+/* ============================================================
+   AUDIT LOG SYSTEM STYLES
+   ============================================================ */
+.audit-log-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes drawerSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.audit-log-drawer-panel {
+  width: 100%;
+  max-width: 580px;
+  height: 100%;
+  background: var(--bg-card);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+  animation: drawerSlideIn 0.25s ease-out;
+}
+
+.audit-log-drawer-header {
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #0f172a, #1e1b4b);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.audit-log-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.audit-log-filter-bar {
+  padding: 14px 18px;
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.audit-log-timeline {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  position: relative;
+}
+
+.audit-log-timeline-track {
+  position: relative;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.audit-log-timeline-track::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--line);
+}
+
+.audit-log-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.audit-log-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--line-strong);
+}
+
+.audit-log-node {
+  position: absolute;
+  left: -24px;
+  top: 16px;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  background: var(--bg-card);
+}
+
+.audit-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 10px;
+  background: var(--panel-alt);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.audit-diff-table th {
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.03);
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+
+.audit-diff-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.audit-diff-old {
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  font-family: monospace;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.audit-diff-new {
+  color: var(--success-text);
+  background: var(--success-bg);
+  font-family: monospace;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.audit-log-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.audit-log-btn:hover {
+  background: var(--panel-alt);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+
 

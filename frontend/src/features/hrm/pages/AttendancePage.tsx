@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { hrmApi, Attendance, Employee, Department, WorkSchedule } from '../services/hrmApi';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -483,8 +484,10 @@ export function AttendancePage() {
           <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Track employee attendance, check-ins, monthly calendar, and corrections</p>
         </div>
 
-        {/* View Switcher Toggle */}
-        <div style={{ display: 'inline-flex', background: 'var(--panel-alt)', borderRadius: 10, padding: 3, border: '1px solid var(--line)' }}>
+        {/* View Switcher Toggle & Audit Log */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AuditLogButton entityTypes={['attendance']} title="Attendance Audit Log" />
+          <div style={{ display: 'inline-flex', background: 'var(--panel-alt)', borderRadius: 10, padding: 3, border: '1px solid var(--line)' }}>
           <button onClick={() => setViewMode('calendar')}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: viewMode === 'calendar' ? 'var(--bg-card)' : 'transparent', color: viewMode === 'calendar' ? '#2563eb' : 'var(--muted)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: viewMode === 'calendar' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
             <CalendarIcon size={15} /> Calendar View
@@ -495,6 +498,7 @@ export function AttendancePage() {
           </button>
         </div>
       </div>
+    </div>
 
       <CheckInCard employees={employees} onRefresh={fetchAttendance} />
 

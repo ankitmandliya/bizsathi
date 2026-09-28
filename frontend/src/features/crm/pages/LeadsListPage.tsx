@@ -19,6 +19,7 @@ import { LeadFormModal } from '../components/LeadFormModal';
 import { crmApi } from '../services/crmApi';
 import { Lead } from '../types/crm';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 const INITIAL_DEMO_LEADS: Lead[] = [
   {
@@ -191,6 +192,8 @@ export function LeadsListPage() {
 
         {/* Action Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <AuditLogButton entityTypes={['lead']} title="Leads Audit Log" />
+
           <Button
             variant="outline"
             onClick={() => setIsFilterOpen(!isFilterOpen)}

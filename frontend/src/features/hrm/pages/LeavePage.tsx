@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Calendar, CheckCircle, XCircle, Plus, X } from 'lucide-react';
 import { hrmApi, LeaveRequest, LeaveType, Employee } from '../services/hrmApi';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
   PENDING:   { label: 'Pending',   bg: '#fef3c7', text: '#b45309' },
@@ -175,9 +176,12 @@ export function LeavePage() {
           </h1>
           <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Apply leave and manage approvals</p>
         </div>
-        <button onClick={() => setIsApplyOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}>
-          <Plus size={16} /> Apply Leave
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AuditLogButton entityTypes={['leave']} title="Leave Audit Log" />
+          <button onClick={() => setIsApplyOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}>
+            <Plus size={16} /> Apply Leave
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}

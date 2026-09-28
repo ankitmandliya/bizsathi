@@ -26,8 +26,7 @@ from app.services.sales import SalesService
 router = APIRouter(prefix="/sales", tags=["sales"])
 
 
-def get_client_ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
+from app.services.audit import get_client_ip, get_user_agent
 
 
 @router.get("/status")
@@ -62,6 +61,7 @@ async def create_quotation(
         user_id=current_user.id,
         quotation_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return QuotationResponse.model_validate(quotation)
 
@@ -197,6 +197,7 @@ async def update_quotation(
         quotation_id=quotation_id,
         quotation_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return QuotationResponse.model_validate(quotation)
 
@@ -219,6 +220,7 @@ async def convert_quotation_to_invoice(
         user_id=current_user.id,
         quotation_id=quotation_id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return InvoiceResponse.model_validate(invoice)
 
@@ -243,6 +245,7 @@ async def create_invoice(
         user_id=current_user.id,
         invoice_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     if warning and not body.confirm:
         response.status_code = status.HTTP_200_OK
@@ -419,6 +422,7 @@ async def record_payment(
         user_id=current_user.id,
         payment_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return PaymentResponse.model_validate(payment)
 
@@ -521,6 +525,7 @@ async def delete_quotation(
         user_id=current_user.id,
         quotation_id=quotation_id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return {"status": "deleted"}
 
@@ -542,5 +547,6 @@ async def delete_invoice(
         user_id=current_user.id,
         invoice_id=invoice_id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return {"status": "deleted"}

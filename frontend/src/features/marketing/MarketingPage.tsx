@@ -4,6 +4,7 @@ import { Campaign, Template, marketingApi } from '../../services/marketingApi';
 import { TemplatesList } from './TemplatesList';
 import { CampaignWizardModal } from './CampaignWizardModal';
 import { CampaignReportView } from './CampaignReportView';
+import { AuditLogButton } from '../../components/common/AuditLogButton';
 
 export function MarketingPage() {
   const [activeTab, setActiveTab] = useState<'campaigns' | 'templates'>('campaigns');
@@ -59,12 +60,15 @@ export function MarketingPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsWizardOpen(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10, background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
-        >
-          <Plus size={16} /> New Campaign
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AuditLogButton entityTypes={['campaign', 'template']} title="Marketing Audit Log" />
+          <button
+            onClick={() => setIsWizardOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10, background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
+          >
+            <Plus size={16} /> New Campaign
+          </button>
+        </div>
       </div>
 
       {/* Main Tabs */}

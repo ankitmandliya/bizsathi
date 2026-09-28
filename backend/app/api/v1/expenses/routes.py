@@ -27,8 +27,7 @@ categories_router = APIRouter(prefix="/expense-categories", tags=["expense-categ
 expenses_router = APIRouter(prefix="/expenses", tags=["expenses"])
 
 
-def get_client_ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
+from app.services.audit import get_client_ip, get_user_agent
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +69,7 @@ async def create_expense_category(
         category_in=body,
         user_id=current_user.id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return ExpenseCategoryResponse.model_validate(category)
 
@@ -112,6 +112,7 @@ async def update_expense_category(
         category_in=body,
         user_id=current_user.id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return ExpenseCategoryResponse.model_validate(category)
 
@@ -134,6 +135,7 @@ async def delete_expense_category(
         category_id=category_id,
         user_id=current_user.id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
 
 
@@ -259,6 +261,7 @@ async def create_expense(
         user_id=current_user.id,
         expense_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return to_expense_response(expense)
 
@@ -301,6 +304,7 @@ async def update_expense(
         expense_id=expense_id,
         expense_in=body,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return to_expense_response(expense)
 
@@ -323,4 +327,5 @@ async def delete_expense(
         user_id=current_user.id,
         expense_id=expense_id,
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )

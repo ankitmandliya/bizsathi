@@ -28,7 +28,7 @@ from app.schemas.sales import (
     QuotationCreate,
     QuotationUpdate,
 )
-from app.services.audit import log_audit_event
+from app.services.audit import compute_changes, log_audit_event
 
 
 def calculate_line_item(item_in: LineItemCreate) -> dict[str, Any]:
@@ -78,6 +78,7 @@ class SalesService:
         user_id: UUID,
         quotation_in: QuotationCreate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Quotation:
         customer = await self.customer_repo.get_by_id(tenant_id, quotation_in.customer_id)
         if not customer:
@@ -115,6 +116,7 @@ class SalesService:
         )
 
         created = await self.quotation_repo.create(quotation)
+        tracked = ["quotation_number", "customer_id", "total_amount", "valid_until", "status", "notes"]
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -122,8 +124,11 @@ class SalesService:
             action="sales.quotation.create",
             entity_type="quotation",
             entity_id=str(created.id),
+            entity_label=created.quotation_number,
+            changes=compute_changes(None, created, tracked),
             details={"quotation_number": created.quotation_number, "total_amount": float(created.total_amount)},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         return created
@@ -161,9 +166,12 @@ class SalesService:
         quotation_id: UUID,
         quotation_in: QuotationUpdate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Quotation:
         quotation = await self.get_quotation(tenant_id, quotation_id)
         update_data = quotation_in.model_dump(exclude_unset=True)
+        tracked = ["quotation_number", "customer_id", "total_amount", "valid_until", "status", "notes"]
+        before_dict = {f: getattr(quotation, f, None) for f in tracked}
 
         if "customer_id" in update_data:
             customer = await self.customer_repo.get_by_id(tenant_id, update_data["customer_id"])
@@ -196,6 +204,7 @@ class SalesService:
             quotation.total_amount = round(total_amount, 2)
 
         await self.db.flush()
+        changes = compute_changes(before_dict, quotation, list(update_data.keys()))
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -203,8 +212,11 @@ class SalesService:
             action="sales.quotation.update",
             entity_type="quotation",
             entity_id=str(quotation.id),
+            entity_label=quotation.quotation_number,
+            changes=changes,
             details={"quotation_number": quotation.quotation_number, "status": quotation.status},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         await self.db.refresh(quotation)
@@ -216,6 +228,7 @@ class SalesService:
         user_id: UUID,
         quotation_id: UUID,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Invoice:
         quotation = await self.get_quotation(tenant_id, quotation_id)
         if quotation.status == "Accepted":
@@ -271,8 +284,10 @@ class SalesService:
             action="sales.quotation.convert",
             entity_type="quotation",
             entity_id=str(quotation.id),
+            entity_label=quotation.quotation_number,
             details={"invoice_id": str(created_invoice.id), "invoice_number": created_invoice.invoice_number},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         return created_invoice
@@ -284,6 +299,7 @@ class SalesService:
         user_id: UUID,
         invoice_in: InvoiceCreate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> tuple[Invoice | None, CreditLimitWarningResponse | None]:
         customer = await self.customer_repo.get_by_id(tenant_id, invoice_in.customer_id)
         if not customer:
@@ -348,6 +364,7 @@ class SalesService:
         created = await self.invoice_repo.create(invoice)
         created.status = compute_invoice_status(created)
 
+        tracked = ["invoice_number", "customer_id", "total_amount", "due_date", "status", "notes"]
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -355,8 +372,11 @@ class SalesService:
             action="sales.invoice.create",
             entity_type="invoice",
             entity_id=str(created.id),
+            entity_label=created.invoice_number,
+            changes=compute_changes(None, created, tracked),
             details={"invoice_number": created.invoice_number, "total_amount": float(created.total_amount)},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         return created, None
@@ -397,6 +417,7 @@ class SalesService:
         user_id: UUID,
         payment_in: PaymentCreate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Payment:
         invoice = await self.get_invoice(tenant_id, payment_in.invoice_id)
 
@@ -430,6 +451,7 @@ class SalesService:
         invoice.status = compute_invoice_status(invoice)
 
         created_payment = await self.payment_repo.create(payment)
+        tracked = ["receipt_number", "amount", "payment_mode", "payment_date"]
 
         await log_audit_event(
             self.db,
@@ -438,12 +460,15 @@ class SalesService:
             action="sales.payment.create",
             entity_type="payment",
             entity_id=str(created_payment.id),
+            entity_label=created_payment.receipt_number,
+            changes=compute_changes(None, created_payment, tracked),
             details={
                 "receipt_number": created_payment.receipt_number,
                 "amount": float(created_payment.amount),
                 "invoice_id": str(invoice.id),
             },
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         return created_payment
@@ -500,6 +525,7 @@ class SalesService:
         user_id: UUID,
         quotation_id: UUID,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> None:
         quotation = await self.get_quotation(tenant_id, quotation_id)
         await self.quotation_repo.soft_delete(tenant_id, quotation_id)
@@ -510,8 +536,10 @@ class SalesService:
             action="sales.quotation.delete",
             entity_type="quotation",
             entity_id=str(quotation.id),
+            entity_label=quotation.quotation_number,
             details={"quotation_number": quotation.quotation_number},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
 
@@ -521,6 +549,7 @@ class SalesService:
         user_id: UUID,
         invoice_id: UUID,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> None:
         invoice = await self.get_invoice(tenant_id, invoice_id)
         await self.invoice_repo.soft_delete(tenant_id, invoice_id)
@@ -531,7 +560,9 @@ class SalesService:
             action="sales.invoice.delete",
             entity_type="invoice",
             entity_id=str(invoice.id),
+            entity_label=invoice.invoice_number,
             details={"invoice_number": invoice.invoice_number},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()

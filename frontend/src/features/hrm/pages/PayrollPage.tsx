@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Play, FileText, Download, CheckCircle, IndianRupee, X } from 'lucide-react';
 import { hrmApi, Payroll, Payslip } from '../services/hrmApi';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 const curPeriod = () => {
   const d = new Date();
@@ -213,9 +214,12 @@ export function PayrollPage() {
           </h1>
           <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Run monthly payroll and download payslips</p>
         </div>
-        <button onClick={() => setIsRunOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 14px rgba(5,150,105,0.35)' }}>
-          <Play size={15} /> Run Payroll
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AuditLogButton entityTypes={['payroll']} title="Payroll Audit Log" />
+          <button onClick={() => setIsRunOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 22px', background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 14px rgba(5,150,105,0.35)' }}>
+            <Play size={15} /> Run Payroll
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20, alignItems: 'start' }}>

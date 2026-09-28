@@ -26,7 +26,7 @@ from app.schemas.crm import (
     LeadCreate,
     LeadUpdate,
 )
-from app.services.audit import log_audit_event
+from app.services.audit import compute_changes, log_audit_event
 
 
 DEFAULT_PIPELINE_STAGES = [
@@ -86,12 +86,14 @@ class CRMService:
         user_id: UUID,
         lead_in: LeadCreate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Lead:
         lead = Lead(
             tenant_id=tenant_id,
             **lead_in.model_dump(),
         )
         created_lead = await self.lead_repo.create(lead)
+        tracked = ["name", "email", "phone", "company", "status", "source", "priority", "estimated_value"]
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -99,8 +101,11 @@ class CRMService:
             action="crm.lead.create",
             entity_type="lead",
             entity_id=str(created_lead.id),
+            entity_label=created_lead.name,
+            changes=compute_changes(None, created_lead, tracked),
             details={"name": created_lead.name, "source": created_lead.source, "status": created_lead.status},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         return created_lead
@@ -142,14 +147,20 @@ class CRMService:
         lead_id: UUID,
         lead_in: LeadUpdate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Lead:
         lead = await self.get_lead(tenant_id, lead_id)
         update_data = lead_in.model_dump(exclude_unset=True)
+        tracked = ["name", "email", "phone", "company", "status", "source", "priority", "estimated_value"]
+        before_dict = {f: getattr(lead, f, None) for f in tracked}
+
         for key, value in update_data.items():
             setattr(lead, key, value)
         
         await self.db.flush()
         await self.db.refresh(lead)
+
+        changes = compute_changes(before_dict, lead, list(update_data.keys()))
 
         await log_audit_event(
             self.db,
@@ -158,8 +169,11 @@ class CRMService:
             action="crm.lead.update",
             entity_type="lead",
             entity_id=str(lead.id),
+            entity_label=lead.name,
+            changes=changes,
             details=update_data,
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         return lead
@@ -170,6 +184,7 @@ class CRMService:
         user_id: UUID,
         lead_id: UUID,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> bool:
         lead = await self.get_lead(tenant_id, lead_id)
         success = await self.lead_repo.soft_delete(tenant_id, lead_id)
@@ -181,8 +196,10 @@ class CRMService:
                 action="crm.lead.delete",
                 entity_type="lead",
                 entity_id=str(lead_id),
+                entity_label=lead.name,
                 details={"name": lead.name},
                 ip_address=ip_address,
+                user_agent=user_agent,
             )
             await self.db.commit()
         return success
@@ -193,6 +210,7 @@ class CRMService:
         user_id: UUID,
         lead_id: UUID,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Customer:
         lead = await self.get_lead(tenant_id, lead_id)
 
@@ -236,8 +254,10 @@ class CRMService:
             action="crm.lead.convert",
             entity_type="lead",
             entity_id=str(lead.id),
+            entity_label=lead.name,
             details={"customer_id": str(created_customer.id)},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         return created_customer
@@ -249,6 +269,7 @@ class CRMService:
         user_id: UUID,
         deal_in: DealCreate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Deal:
         stage = await self.stage_repo.get_by_id(tenant_id, deal_in.stage_id)
         if not stage:
@@ -299,10 +320,12 @@ class CRMService:
                     user_id=user_id,
                     lead_id=created_deal.lead_id,
                     ip_address=ip_address,
+                    user_agent=user_agent,
                 )
                 created_deal.customer_id = converted_cust.id
                 await self.db.flush()
 
+        tracked = ["title", "value", "stage_id", "probability", "expected_closing_date", "lead_id", "customer_id"]
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -310,8 +333,11 @@ class CRMService:
             action="crm.deal.create",
             entity_type="deal",
             entity_id=str(created_deal.id),
+            entity_label=created_deal.title,
+            changes=compute_changes(None, created_deal, tracked),
             details={"title": created_deal.title, "value": created_deal.value, "stage_id": str(stage.id)},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
 
@@ -352,9 +378,12 @@ class CRMService:
         deal_id: UUID,
         deal_in: DealUpdate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Deal:
         deal = await self.get_deal(tenant_id, deal_id)
         update_data = deal_in.model_dump(exclude_unset=True)
+        tracked = ["title", "value", "stage_id", "probability", "expected_closing_date", "lead_id", "customer_id"]
+        before_dict = {f: getattr(deal, f, None) for f in tracked}
 
         if "lead_id" in update_data and update_data["lead_id"]:
             lead = await self.lead_repo.get_by_id(tenant_id, update_data["lead_id"])
@@ -389,6 +418,7 @@ class CRMService:
                         user_id=user_id,
                         lead_id=deal.lead_id,
                         ip_address=ip_address,
+                        user_agent=user_agent,
                     )
                     deal.customer_id = converted_cust.id
             elif new_stage.is_lost:
@@ -402,8 +432,10 @@ class CRMService:
                 action="crm.deal.stage_change",
                 entity_type="deal",
                 entity_id=str(deal.id),
+                entity_label=deal.title,
                 details={"old_stage_id": str(deal.stage_id), "new_stage_id": str(new_stage.id)},
                 ip_address=ip_address,
+                user_agent=user_agent,
             )
 
         for key, value in update_data.items():
@@ -412,6 +444,8 @@ class CRMService:
 
         await self.db.flush()
 
+        changes = compute_changes(before_dict, deal, list(update_data.keys()))
+
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -419,8 +453,11 @@ class CRMService:
             action="crm.deal.update",
             entity_type="deal",
             entity_id=str(deal.id),
+            entity_label=deal.title,
+            changes=changes,
             details=update_data,
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
 
@@ -432,6 +469,7 @@ class CRMService:
         user_id: UUID,
         deal_id: UUID,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> bool:
         deal = await self.get_deal(tenant_id, deal_id)
         success = await self.deal_repo.soft_delete(tenant_id, deal_id)
@@ -443,8 +481,10 @@ class CRMService:
                 action="crm.deal.delete",
                 entity_type="deal",
                 entity_id=str(deal_id),
+                entity_label=deal.title,
                 details={"title": deal.title},
                 ip_address=ip_address,
+                user_agent=user_agent,
             )
             await self.db.commit()
         return success
@@ -595,6 +635,7 @@ class CRMService:
         user_id: UUID,
         customer_in: CustomerCreate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Customer:
         if not customer_in.phone or not customer_in.phone.strip():
             raise HTTPException(
@@ -615,7 +656,7 @@ class CRMService:
             **cust_data,
         )
         created_cust = await self.customer_repo.create(customer)
-
+        tracked = ["name", "company", "email", "phone", "whatsapp", "customer_type", "opening_balance", "opening_balance_type", "credit_limit"]
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -623,8 +664,11 @@ class CRMService:
             action="crm.customer.create",
             entity_type="customer",
             entity_id=str(created_cust.id),
+            entity_label=created_cust.name,
+            changes=compute_changes(None, created_cust, tracked),
             details={"name": created_cust.name, "phone": created_cust.phone},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         return created_cust
@@ -636,6 +680,7 @@ class CRMService:
         customer_id: UUID,
         customer_in: CustomerUpdate,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Customer:
         cust = await self.get_customer(tenant_id, customer_id)
 
@@ -647,6 +692,8 @@ class CRMService:
                     detail=f"A customer with mobile number '{customer_in.phone.strip()}' already exists.",
                 )
         update_data = customer_in.model_dump(exclude_unset=True)
+        tracked = ["name", "company", "email", "phone", "whatsapp", "customer_type", "opening_balance", "opening_balance_type", "credit_limit", "billing_address", "city", "state", "pincode", "gstin", "pan"]
+        before_dict = {f: getattr(cust, f, None) for f in tracked}
 
         balance_changed = False
         old_balance_details = {}
@@ -675,6 +722,8 @@ class CRMService:
             audit_details["old_balance"] = old_balance_details
             audit_details["new_balance"] = new_balance_details
 
+        changes = compute_changes(before_dict, cust, list(update_data.keys()))
+
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
@@ -682,8 +731,11 @@ class CRMService:
             action="crm.customer.update",
             entity_type="customer",
             entity_id=str(cust.id),
+            entity_label=cust.name,
+            changes=changes,
             details=audit_details,
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
         await self.db.refresh(cust)
@@ -695,6 +747,7 @@ class CRMService:
         user_id: UUID,
         customer_id: UUID,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> None:
         cust = await self.get_customer(tenant_id, customer_id)
         await self.customer_repo.soft_delete(tenant_id, customer_id)
@@ -705,8 +758,10 @@ class CRMService:
             action="crm.customer.delete",
             entity_type="customer",
             entity_id=str(cust.id),
+            entity_label=cust.name,
             details={"name": cust.name},
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
 
@@ -716,6 +771,7 @@ class CRMService:
         user_id: UUID,
         file_bytes: bytes,
         ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> CustomerImportSummary:
         content_str = file_bytes.decode("utf-8", errors="replace")
         csv_reader = csv.reader(io.StringIO(content_str))
@@ -859,12 +915,14 @@ class CRMService:
             action="crm.customer.import",
             entity_type="customer",
             entity_id="batch_import",
+            entity_label=f"Customer Import ({imported_count} imported)",
             details={
                 "imported_count": imported_count,
                 "skipped_count": skipped_count,
                 "failed_count": failed_count,
             },
             ip_address=ip_address,
+            user_agent=user_agent,
         )
         await self.db.commit()
 

@@ -2,15 +2,16 @@ from typing import Annotated
 from uuid import UUID
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_tenant, get_current_user
 from app.core.database import get_db
 from app.models.crm import Customer
-from app.models.domain import AuditLog, Tenant, User
+from app.models.domain import Tenant, User
 from app.models.marketing import Campaign, CampaignRecipient, Template
+from app.services.audit import compute_changes, get_client_ip, get_user_agent, log_audit_event
 from app.schemas.marketing import (
     AudienceCountRequest,
     AudienceCountResponse,
@@ -48,6 +49,7 @@ async def list_templates(
 @router.post("/templates", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
 async def create_template(
     body: TemplateCreate,
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     tenant_id: Annotated[UUID, Depends(get_current_tenant)],
     db: AsyncSession = Depends(get_db),
@@ -64,16 +66,23 @@ async def create_template(
         email_body=body.email_body,
     )
     db.add(tmpl)
+    await db.flush()
 
-    audit = AuditLog(
+    tracked = ["name", "category", "whatsapp_body", "email_subject", "email_body"]
+    await log_audit_event(
+        db,
         tenant_id=tenant_id,
         user_id=current_user.id,
         action="marketing.template.create",
         entity_type="Template",
         entity_id=str(tmpl.id),
+        entity_label=tmpl.name,
+        changes=compute_changes(None, tmpl, tracked),
         details={"name": tmpl.name, "category": tmpl.category},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+        commit=False,
     )
-    db.add(audit)
 
     await db.commit()
     await db.refresh(tmpl)
@@ -99,6 +108,7 @@ async def get_template(
 async def update_template(
     template_id: UUID,
     body: TemplateUpdate,
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     tenant_id: Annotated[UUID, Depends(get_current_tenant)],
     db: AsyncSession = Depends(get_db),
@@ -108,6 +118,9 @@ async def update_template(
     tmpl = res.scalar_one_or_none()
     if not tmpl:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+
+    tracked = ["name", "category", "whatsapp_body", "email_subject", "email_body"]
+    before_dict = {f: getattr(tmpl, f, None) for f in tracked}
 
     if body.name is not None:
         tmpl.name = body.name
@@ -126,16 +139,22 @@ async def update_template(
         tmpl.email_body = body.email_body
 
     tmpl.updated_at = datetime.now(UTC)
+    changes = compute_changes(before_dict, tmpl, tracked)
 
-    audit = AuditLog(
+    await log_audit_event(
+        db,
         tenant_id=tenant_id,
         user_id=current_user.id,
         action="marketing.template.update",
         entity_type="Template",
         entity_id=str(tmpl.id),
+        entity_label=tmpl.name,
+        changes=changes,
         details={"name": tmpl.name},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+        commit=False,
     )
-    db.add(audit)
 
     await db.commit()
     await db.refresh(tmpl)
@@ -162,6 +181,7 @@ async def delete_template(
 @router.post("/templates/{template_id}/submit-approval", response_model=TemplateResponse)
 async def submit_template_approval(
     template_id: UUID,
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     tenant_id: Annotated[UUID, Depends(get_current_tenant)],
     db: AsyncSession = Depends(get_db),
@@ -179,15 +199,19 @@ async def submit_template_approval(
     tmpl.whatsapp_provider_template_id = f"wpt_{str(tmpl.id)[:8]}"
     tmpl.updated_at = datetime.now(UTC)
 
-    audit = AuditLog(
+    await log_audit_event(
+        db,
         tenant_id=tenant_id,
         user_id=current_user.id,
         action="marketing.template.submit_approval",
-        entity_type="Template",
+        entity_type="template",
         entity_id=str(tmpl.id),
+        entity_label=tmpl.name,
         details={"provider_template_id": tmpl.whatsapp_provider_template_id},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+        commit=False,
     )
-    db.add(audit)
 
     await db.commit()
     await db.refresh(tmpl)
@@ -304,11 +328,11 @@ async def list_campaigns(
 @router.post("/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
 async def create_campaign(
     body: CampaignCreate,
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     tenant_id: Annotated[UUID, Depends(get_current_tenant)],
     db: AsyncSession = Depends(get_db),
 ) -> CampaignResponse:
-    # Verify template exists
     tmpl_stmt = select(Template).where(Template.id == body.template_id, Template.tenant_id == tenant_id)
     tmpl_res = await db.execute(tmpl_stmt)
     tmpl = tmpl_res.scalar_one_or_none()
@@ -328,16 +352,23 @@ async def create_campaign(
         created_by_id=current_user.id,
     )
     db.add(campaign)
+    await db.flush()
 
-    audit = AuditLog(
+    tracked = ["name", "status", "audience_filter", "scheduled_at", "template_id"]
+    await log_audit_event(
+        db,
         tenant_id=tenant_id,
         user_id=current_user.id,
         action="marketing.campaign.create",
         entity_type="Campaign",
         entity_id=str(campaign.id),
+        entity_label=campaign.name,
+        changes=compute_changes(None, campaign, tracked),
         details={"name": campaign.name, "status": init_status},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+        commit=False,
     )
-    db.add(audit)
 
     await db.commit()
     await db.refresh(campaign)

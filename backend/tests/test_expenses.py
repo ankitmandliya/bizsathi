@@ -201,3 +201,43 @@ async def test_search_expenses():
     assert total >= 1
     assert any("Power" in e.title for e in items)
 
+
+@pytest.mark.asyncio
+async def test_delete_category_with_no_expenses_succeeds():
+    tenant_id = uuid4()
+    user_id = uuid4()
+    mock_db = build_mock_db()
+    service = ExpenseService(mock_db)
+
+    cat = await service.create_category(tenant_id, ExpenseCategoryCreate(name="Temporary Category"), user_id)
+    await service.delete_category(tenant_id, cat.id, user_id)
+
+    # Category deleted
+    cats = [o for o in mock_db._stored_objects if isinstance(o, ExpenseCategory)]  # type: ignore[attr-defined]
+    assert cat not in cats
+
+
+@pytest.mark.asyncio
+async def test_delete_category_with_linked_expenses_prevented():
+    tenant_id = uuid4()
+    user_id = uuid4()
+    mock_db = build_mock_db()
+    service = ExpenseService(mock_db)
+
+    cat = await service.create_category(tenant_id, ExpenseCategoryCreate(name="Electricity Bill"), user_id)
+    exp_in = ExpenseCreate(
+        category_id=cat.id,
+        title="September Electricity Bill",
+        amount=Decimal("5400.00"),
+        expense_date=date.today(),
+        payment_method="CASH",
+    )
+    await service.create_expense(tenant_id, user_id, exp_in)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.delete_category(tenant_id, cat.id, user_id)
+
+    assert exc_info.value.status_code == 400
+    assert "This category cannot be deleted because it has existing expense records associated with it." in exc_info.value.detail
+
+

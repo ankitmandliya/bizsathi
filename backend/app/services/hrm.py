@@ -64,7 +64,7 @@ from app.schemas.hrm import (
     SetupLoginRequest,
     WorkScheduleCreate,
 )
-from app.services.audit import log_audit_event
+from app.services.audit import compute_changes, log_audit_event
 
 
 
@@ -465,8 +465,11 @@ class HRMService:
             await self.setup_employee_login(tenant_id, emp.id, username, password, user_id)
 
         emp = await self.emp_repo.get_by_id(tenant_id, emp.id)
+        tracked = ["name", "email", "phone", "department_id", "designation_id", "status"]
         await log_audit_event(self.db, tenant_id=tenant_id, user_id=user_id, action="create",
                                entity_type="Employee", entity_id=str(emp.id),  # type: ignore[union-attr]
+                               entity_label=emp.name if emp else None,
+                               changes=compute_changes(None, emp, tracked),
                                details={"name": data.name})
         return emp  # type: ignore[return-value]
 
@@ -479,6 +482,9 @@ class HRMService:
         username = data.username
         password = data.password
 
+        tracked = ["name", "email", "phone", "department_id", "designation_id", "status", "joining_date"]
+        before_dict = {f: getattr(emp, f, None) for f in tracked}
+
         update_data = data.model_dump(exclude={"give_login_access", "username", "password"}, exclude_none=True)
         for field, value in update_data.items():
             setattr(emp, field, value)
@@ -488,19 +494,24 @@ class HRMService:
             await self.setup_employee_login(tenant_id, employee_id, username, password, user_id)
 
         emp = await self.emp_repo.get_by_id(tenant_id, employee_id)
+        changes = compute_changes(before_dict, emp, list(update_data.keys()))
         await log_audit_event(self.db, tenant_id=tenant_id, user_id=user_id, action="update",
-                               entity_type="Employee", entity_id=str(employee_id))
+                               entity_type="Employee", entity_id=str(employee_id),
+                               entity_label=emp.name if emp else None,
+                               changes=changes)
         return emp  # type: ignore[return-value]
 
     async def delete_employee(self, tenant_id: UUID, employee_id: UUID, user_id: UUID) -> None:
         emp = await self.emp_repo.get_by_id(tenant_id, employee_id)
         if not emp:
             raise HTTPException(status_code=404, detail="Employee not found")
+        name = emp.name
         emp.deleted_at = datetime.now(UTC)
         emp.status = "Inactive"
         await self.db.commit()
         await log_audit_event(self.db, tenant_id=tenant_id, user_id=user_id, action="delete",
-                               entity_type="Employee", entity_id=str(employee_id))
+                               entity_type="Employee", entity_id=str(employee_id),
+                               entity_label=name)
 
 
     # -----------------------------------------------------------------------
@@ -513,6 +524,7 @@ class HRMService:
         # Close existing active structure (same effective-dating pattern)
         await self.salary_repo.close_current(tenant_id, employee_id, data.effective_from - timedelta(days=1))
 
+        emp = await self.emp_repo.get_by_id(tenant_id, employee_id)
         struct = SalaryStructure(
             tenant_id=tenant_id,
             employee_id=employee_id,
@@ -526,9 +538,13 @@ class HRMService:
         self.db.add(struct)
         await self.db.commit()
         await self.db.refresh(struct)
+        label = f"Salary Structure ({emp.name})" if emp else "Salary Structure"
+        tracked = ["basic", "hra", "other_allowances", "pf_deduction", "other_deductions", "effective_from"]
         await log_audit_event(self.db, tenant_id=tenant_id, user_id=user_id, action="create",
                                entity_type="SalaryStructure", entity_id=str(struct.id),
-                               details={"employee_id": str(employee_id), "basic": data.basic})
+                               entity_label=label,
+                               changes=compute_changes(None, struct, tracked),
+                               details={"employee_id": str(employee_id), "basic": float(data.basic)})
         return struct
 
     async def get_salary_structures(self, tenant_id: UUID, employee_id: UUID) -> list[SalaryStructure]:

@@ -27,7 +27,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserProfileResponse,
 )
-from app.services.audit import log_audit_event
+from app.services.audit import get_client_ip, get_user_agent, log_audit_event
 from app.services.crm import seed_default_pipeline_stages
 
 logger = logging.getLogger(__name__)
@@ -43,10 +43,6 @@ except ImportError:
         return {"status": "sent", "to": to_email, "subject": subject}
 
 
-def get_client_ip(request: Request) -> str | None:
-    return request.client.host if request.client else None
-
-
 @router.post("/login", response_model=TokenResponse)
 async def login(
     body: LoginRequest,
@@ -54,6 +50,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     ip_addr = get_client_ip(request)
+    u_agent = get_user_agent(request)
     stmt = select(User).where(User.email == body.email.lower())
     res = await db.execute(stmt)
     user = res.scalar_one_or_none()
@@ -63,10 +60,13 @@ async def login(
             db,
             tenant_id=user.id if False else DEFAULT_TENANT_ID,  # type: ignore[arg-type]
             user_id=user.id if user else None,
+            actor_name=user.full_name if user else body.email.lower(),
             action="user.login.failure",
             entity_type="user",
+            entity_label=body.email.lower(),
             details={"email": body.email.lower(), "reason": "invalid_credentials"},
             ip_address=ip_addr,
+            user_agent=u_agent,
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,10 +78,13 @@ async def login(
             db,
             tenant_id=DEFAULT_TENANT_ID,  # type: ignore[arg-type]
             user_id=user.id,
+            actor_name=user.full_name or user.email,
             action="user.login.failure",
             entity_type="user",
+            entity_label=user.email,
             details={"email": body.email.lower(), "reason": "user_inactive"},
             ip_address=ip_addr,
+            user_agent=u_agent,
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -101,10 +104,13 @@ async def login(
         db,
         tenant_id=active_tenant_id,  # type: ignore[arg-type]
         user_id=user.id,
+        actor_name=user.full_name or user.email,
         action="user.login.success",
         entity_type="user",
+        entity_label=user.full_name or user.email,
         details={"email": user.email},
         ip_address=ip_addr,
+        user_agent=u_agent,
     )
 
     return TokenResponse(
@@ -121,6 +127,7 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ) -> UserProfileResponse:
     ip_addr = get_client_ip(request)
+    u_agent = get_user_agent(request)
     stmt = select(User).where(User.email == body.email.lower())
     res = await db.execute(stmt)
     if res.scalar_one_or_none():
@@ -180,10 +187,13 @@ async def register(
         db,
         tenant_id=tenant.id,
         user_id=user.id,
+        actor_name=user.full_name or user.email,
         action="user.register",
         entity_type="user",
+        entity_label=user.full_name or user.email,
         details={"email": user.email, "tenant_name": tenant.name},
         ip_address=ip_addr,
+        user_agent=u_agent,
     )
 
     return UserProfileResponse(
@@ -205,6 +215,7 @@ async def forgot_password(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     ip_addr = get_client_ip(request)
+    u_agent = get_user_agent(request)
     stmt = select(User).where(User.email == body.email.lower(), User.is_active.is_(True))
     res = await db.execute(stmt)
     user = res.scalar_one_or_none()
@@ -232,10 +243,13 @@ async def forgot_password(
             db,
             tenant_id=DEFAULT_TENANT_ID,  # type: ignore[arg-type]
             user_id=user.id,
+            actor_name=user.full_name or user.email,
             action="user.forgot_password.request",
             entity_type="user",
+            entity_label=user.email,
             details={"email": user.email},
             ip_address=ip_addr,
+            user_agent=u_agent,
         )
 
     return {"message": "If email is registered, a password reset token has been sent."}
@@ -248,6 +262,7 @@ async def reset_password(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     ip_addr = get_client_ip(request)
+    u_agent = get_user_agent(request)
     token_key = f"reset_{body.token}"
     stmt = select(Session).where(
         Session.token == token_key, Session.expires_at > datetime.now(UTC)
@@ -279,10 +294,13 @@ async def reset_password(
         db,
         tenant_id=DEFAULT_TENANT_ID,  # type: ignore[arg-type]
         user_id=user.id,
+        actor_name=user.full_name or user.email,
         action="user.reset_password.success",
         entity_type="user",
+        entity_label=user.email,
         details={"email": user.email},
         ip_address=ip_addr,
+        user_agent=u_agent,
     )
 
     return {"message": "Password successfully reset"}
@@ -295,6 +313,7 @@ async def verify_email(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     ip_addr = get_client_ip(request)
+    u_agent = get_user_agent(request)
     token_key = f"verify_{token}"
     stmt = select(Session).where(
         Session.token == token_key, Session.expires_at > datetime.now(UTC)
@@ -326,10 +345,13 @@ async def verify_email(
         db,
         tenant_id=DEFAULT_TENANT_ID,  # type: ignore[arg-type]
         user_id=user.id,
+        actor_name=user.full_name or user.email,
         action="user.verify_email.success",
         entity_type="user",
+        entity_label=user.email,
         details={"email": user.email},
         ip_address=ip_addr,
+        user_agent=u_agent,
     )
 
     return {"message": "Email successfully verified"}
@@ -386,10 +408,13 @@ async def logout(
         db,
         tenant_id=current_tenant_id,
         user_id=current_user.id,
+        actor_name=current_user.full_name or current_user.email,
         action="user.logout",
         entity_type="user",
+        entity_label=current_user.full_name or current_user.email,
         details={"email": current_user.email},
         ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return {"status": "logged_out"}
 
@@ -397,7 +422,9 @@ async def logout(
 @router.post("/change-password")
 async def change_password(
     body: ChangePasswordRequest,
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
+    current_tenant_id: Annotated[Any, Depends(get_current_tenant)],
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     if not verify_password(body.current_password, current_user.password_hash):
@@ -406,6 +433,21 @@ async def change_password(
             detail="Current password is incorrect",
         )
     current_user.password_hash = hash_password(body.new_password)
+
+    await log_audit_event(
+        db,
+        tenant_id=current_tenant_id,
+        user_id=current_user.id,
+        actor_name=current_user.full_name or current_user.email,
+        action="user.password_change",
+        entity_type="user",
+        entity_id=str(current_user.id),
+        entity_label=current_user.full_name or current_user.email,
+        changes={"password": {"old": "********", "new": "********"}},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+
     await db.commit()
     return {"message": "Password changed successfully"}
 

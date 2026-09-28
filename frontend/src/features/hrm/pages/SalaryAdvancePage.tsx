@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { IndianRupee, Plus, X, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react';
 import { hrmApi, SalaryAdvance, SalaryAdvanceWarning, Employee } from '../services/hrmApi';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 const STATUS_CFG: Record<string, { bg: string; text: string }> = {
   PENDING:   { bg: '#fef3c7', text: '#b45309' },
@@ -189,9 +190,12 @@ export function SalaryAdvancePage() {
           </h1>
           <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Manage advance payments — auto-adjusted during payroll</p>
         </div>
-        <button onClick={() => setIsCreateOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 12px rgba(245,158,11,0.35)' }}>
-          <Plus size={16} /> Create Advance
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AuditLogButton entityTypes={['salary_advance']} title="Salary Advances Audit Log" />
+          <button onClick={() => setIsCreateOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 12px rgba(245,158,11,0.35)' }}>
+            <Plus size={16} /> Create Advance
+          </button>
+        </div>
       </div>
 
       {/* Summary */}

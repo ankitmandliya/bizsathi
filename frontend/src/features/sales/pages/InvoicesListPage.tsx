@@ -9,6 +9,7 @@ import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { CustomerStatementModal } from '../components/CustomerStatementModal';
 import { getErrorMessage } from '../../../utils/error';
 import { getAccessToken } from '../../../services/auth/tokens';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 export function InvoicesListPage() {
   const navigate = useNavigate();
@@ -170,9 +171,12 @@ export function InvoicesListPage() {
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsCreateOpen(true)} style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: 700 }}>
-          <Plus size={16} style={{ marginRight: '6px' }} /> Create Invoice
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <AuditLogButton entityTypes={['invoice', 'payment']} title="Invoices & Payments Audit Log" />
+          <Button variant="primary" onClick={() => setIsCreateOpen(true)} style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: 700 }}>
+            <Plus size={16} style={{ marginRight: '6px' }} /> Create Invoice
+          </Button>
+        </div>
       </div>
 
       {/* Top Stats KPI Header Cards */}

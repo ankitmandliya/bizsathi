@@ -22,6 +22,7 @@ import { DealFormData } from '../schemas/crmSchemas';
 import { crmApi } from '../services/crmApi';
 import { Deal, Lead, PipelineStage } from '../types/crm';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 const dealTableHeaders = [
   { key: 'title',       title: 'Deal Title' },
@@ -163,6 +164,7 @@ export function DealsListPage() {
                 <List size={14} /> Table
               </button>
             </div>
+            <AuditLogButton entityTypes={['deal']} title="Deals Audit Log" />
             <Button
               icon={<Plus size={15} />}
               onClick={() => {

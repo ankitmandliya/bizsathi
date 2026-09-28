@@ -100,11 +100,15 @@ class AuditLog(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
     __tablename__ = "audit_logs"
 
     user_id: Mapped[UUID | None] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    actor_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     action: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     entity_type: Mapped[str] = mapped_column(String(100), nullable=False)
     entity_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    entity_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    changes: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     details: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
 
 class Plan(Base, UUIDPrimaryKeyMixin, TimestampMixin):

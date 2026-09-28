@@ -10,11 +10,15 @@ import {
   AlertCircle,
   Briefcase,
   Layers,
+  History,
+  MessageSquare,
+  Mail,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { hrmApi, Holiday, LeaveType } from '../hrm/services/hrmApi';
 import { getErrorMessage } from '../../utils/error';
 import { marketingApi } from '../../services/marketingApi';
-import { MessageSquare, Mail, Image as ImageIcon } from 'lucide-react';
+import { AuditLogView } from '../../components/common/AuditLogView';
 
 const WEEKDAYS = [
   { id: '0', label: 'Mon' },
@@ -28,7 +32,7 @@ const WEEKDAYS = [
 
 export function SettingsPage() {
 
-  const [activeTab, setActiveTab] = useState<'schedule' | 'holidays' | 'leave_types' | 'communication'>('schedule');
+  const [activeTab, setActiveTab] = useState<'schedule' | 'holidays' | 'leave_types' | 'communication' | 'audit_log'>('schedule');
 
   // Work Schedule State
   const [workingDays, setWorkingDays] = useState<string[]>(['0', '1', '2', '3', '4']);
@@ -255,7 +259,20 @@ export function SettingsPage() {
         >
           <MessageSquare size={16} /> Branding & Channels
         </button>
+        <button
+          onClick={() => setActiveTab('audit_log')}
+          style={{ padding: '10px 18px', fontWeight: 600, fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: activeTab === 'audit_log' ? '2.5px solid #4f46e5' : '2.5px solid transparent', color: activeTab === 'audit_log' ? '#4f46e5' : 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <History size={16} /> Audit Log
+        </button>
       </div>
+
+      {/* Tab 5: Central Audit Log */}
+      {activeTab === 'audit_log' && (
+        <div style={{ height: '650px' }}>
+          <AuditLogView showEntityFilter={true} />
+        </div>
+      )}
 
 
       {/* Tab 1: Work Schedule */}

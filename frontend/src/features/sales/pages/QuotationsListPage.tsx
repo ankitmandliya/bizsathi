@@ -7,6 +7,7 @@ import { Quotation, salesApi } from '../services/salesApi';
 import { QuotationModal } from '../components/QuotationModal';
 import { QuotationDetailModal } from '../components/QuotationDetailModal';
 import { getErrorMessage } from '../../../utils/error';
+import { AuditLogButton } from '../../../components/common/AuditLogButton';
 
 export function QuotationsListPage() {
   const navigate = useNavigate();
@@ -78,9 +79,12 @@ export function QuotationsListPage() {
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
-          <Plus size={16} style={{ marginRight: '6px' }} /> Create Quotation
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <AuditLogButton entityTypes={['quotation']} title="Quotations Audit Log" />
+          <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
+            <Plus size={16} style={{ marginRight: '6px' }} /> Create Quotation
+          </Button>
+        </div>
       </div>
 
       {/* Filter Bar */}

@@ -526,6 +526,8 @@ async def test_set_salary_structure_creates_new():
 
     service.salary_repo = AsyncMock()
     service.salary_repo.close_current = AsyncMock()
+    service.emp_repo = AsyncMock()
+    service.emp_repo.get_by_id = AsyncMock(return_value=make_employee(tenant_id))
 
     sal_in = SalaryStructureCreate(
         basic=Decimal("25000.00"),
