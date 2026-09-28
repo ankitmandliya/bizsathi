@@ -38,6 +38,7 @@ from app.models.sales import (
     SalesSequence,
 )
 from app.models.marketing import Campaign, CampaignRecipient, Template
+from app.models.expenses import Expense, ExpenseCategory
 
 __all__ = [
     "Base",
@@ -85,5 +86,8 @@ __all__ = [
     "Template",
     "Campaign",
     "CampaignRecipient",
+    # Expenses
+    "ExpenseCategory",
+    "Expense",
 ]
 
