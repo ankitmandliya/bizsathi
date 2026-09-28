@@ -57,16 +57,35 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
   const handleItemChange = (index: number, field: keyof LineItem, val: string | number) => {
     setItems((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: val };
+      let cleanedVal: string | number = val;
+
+      if (field === 'quantity' || field === 'rate') {
+        let str = String(val).replace(/[^0-9.]/g, '');
+        const parts = str.split('.');
+        if (parts.length > 2) {
+          str = parts[0] + '.' + parts.slice(1).join('');
+        }
+        cleanedVal = str;
+      }
+
+      updated[index] = { ...updated[index], [field]: cleanedVal };
       return updated;
     });
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.rate, 0);
-  const totalTax = items.reduce(
-    (sum, item) => sum + (item.quantity * item.rate * item.tax_rate_percent) / 100,
-    0
-  );
+  const subtotal = items.reduce((sum, item) => {
+    const q = parseFloat(String(item.quantity)) || 0;
+    const r = parseFloat(String(item.rate)) || 0;
+    return sum + q * r;
+  }, 0);
+
+  const totalTax = items.reduce((sum, item) => {
+    const q = parseFloat(String(item.quantity)) || 0;
+    const r = parseFloat(String(item.rate)) || 0;
+    const t = Number(item.tax_rate_percent) || 0;
+    return sum + (q * r * t) / 100;
+  }, 0);
+
   const grandTotal = subtotal + totalTax;
 
   const submitInvoice = async (confirmOverride = false) => {
@@ -82,12 +101,19 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
     setLoading(true);
     setError(null);
     try {
+      const formattedItems = items.map((i) => ({
+        description: i.description,
+        quantity: Number(i.quantity) || 0,
+        rate: Number(i.rate) || 0,
+        tax_rate_percent: Number(i.tax_rate_percent) || 0,
+      }));
+
       const res = await salesApi.createInvoice({
         customer_id: selectedCustomerId,
         issue_date: new Date(issueDate).toISOString(),
         due_date: new Date(dueDate).toISOString(),
         notes: notes || undefined,
-        items,
+        items: formattedItems,
         confirm: confirmOverride,
       });
 
@@ -207,18 +233,17 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
                       required
                     />
                     <Input
-                      type="number"
-                      min="1"
+                      type="text"
+                      inputMode="decimal"
                       value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                       required
                     />
                     <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
                       value={item.rate}
-                      onChange={(e) => handleItemChange(index, 'rate', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
                       required
                     />
                     <Select

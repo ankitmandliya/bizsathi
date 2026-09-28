@@ -44,7 +44,14 @@ export function CustomerStatementModal({ isOpen, onClose, customerId }: Customer
               {statement.customer_name}
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+              <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Opening Balance</span>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
+                  ₹{(statement.opening_balance ?? 5000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
               <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Invoiced</span>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
@@ -61,7 +68,7 @@ export function CustomerStatementModal({ isOpen, onClose, customerId }: Customer
 
               <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Outstanding Balance</span>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--danger)' }}>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: statement.outstanding_balance > 0 ? 'var(--danger)' : 'var(--success)' }}>
                   ₹{statement.outstanding_balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
               </div>
@@ -120,6 +127,7 @@ export function CustomerStatementModal({ isOpen, onClose, customerId }: Customer
                 <thead>
                   <tr>
                     <th>Receipt #</th>
+                    <th>Invoice #</th>
                     <th>Date</th>
                     <th>Mode</th>
                     <th>Notes / Ref</th>
@@ -127,57 +135,63 @@ export function CustomerStatementModal({ isOpen, onClose, customerId }: Customer
                   </tr>
                 </thead>
                 <tbody>
-                  {statement.payments.map((p) => (
-                    <React.Fragment key={p.id}>
-                      <tr>
-                        <td style={{ fontWeight: 600 }}>{p.receipt_number}</td>
-                        <td>{new Date(p.payment_date).toLocaleDateString()}</td>
-                        <td>{p.payment_mode}</td>
-                        <td>
-                          {p.notes ? (
-                            <button
-                              type="button"
-                              style={{
-                                background: expandedNoteId === p.id ? 'var(--primary-subtle, #eff6ff)' : 'transparent',
-                                border: '1px solid var(--border)',
-                                borderRadius: '6px',
-                                padding: '3px 8px',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontSize: '12px',
-                                color: 'var(--primary)',
-                                fontWeight: 500,
-                              }}
-                              onClick={() => setExpandedNoteId(expandedNoteId === p.id ? null : p.id)}
-                              title={p.notes}
-                            >
-                              <FileText size={13} /> {expandedNoteId === p.id ? 'Hide Note' : 'View Note'}
-                            </button>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
-                          +₹{p.amount.toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                      {expandedNoteId === p.id && p.notes && (
-                        <tr style={{ background: '#f8fafc' }}>
-                          <td colSpan={5} style={{ padding: '8px 14px', fontSize: '12.5px', color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <FileText size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                              <strong>Transaction Reference / Notes:</strong> {p.notes}
-                            </div>
+                  {statement.payments.map((p) => {
+                    const matchedInvoice = statement.invoices.find((i) => i.id === p.invoice_id);
+                    const invoiceNum = matchedInvoice?.invoice_number || '—';
+
+                    return (
+                      <React.Fragment key={p.id}>
+                        <tr>
+                          <td style={{ fontWeight: 600 }}>{p.receipt_number}</td>
+                          <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{invoiceNum}</td>
+                          <td>{new Date(p.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                          <td>{p.payment_mode}</td>
+                          <td>
+                            {p.notes ? (
+                              <button
+                                type="button"
+                                style={{
+                                  background: expandedNoteId === p.id ? 'var(--primary-subtle, #eff6ff)' : 'transparent',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '6px',
+                                  padding: '3px 8px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '12px',
+                                  color: 'var(--primary)',
+                                  fontWeight: 500,
+                                }}
+                                onClick={() => setExpandedNoteId(expandedNoteId === p.id ? null : p.id)}
+                                title={p.notes}
+                              >
+                                <FileText size={13} /> {expandedNoteId === p.id ? 'Hide Note' : 'View Note'}
+                              </button>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
+                            +₹{p.amount.toLocaleString('en-IN')}
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
+                        {expandedNoteId === p.id && p.notes && (
+                          <tr style={{ background: '#f8fafc' }}>
+                            <td colSpan={6} style={{ padding: '8px 14px', fontSize: '12.5px', color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <FileText size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                                <strong>Transaction Reference / Notes:</strong> {p.notes}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                   {statement.payments.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No payments recorded yet.</td>
+                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No payments recorded yet.</td>
                     </tr>
                   )}
                 </tbody>

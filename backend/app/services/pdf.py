@@ -207,6 +207,7 @@ def generate_invoice_pdf_html(invoice: Invoice, customer: Customer) -> str:
     </div>
 
     {f'<div style="margin-top: 40px; padding: 16px; background: #fffbeb; border-radius: 6px; font-size: 13px; color: #92400e;"><strong>Notes:</strong> {invoice.notes}</div>' if invoice.notes else ''}
+    <script>window.onload = function() {{ window.print(); }};</script>
 </body>
 </html>"""
 

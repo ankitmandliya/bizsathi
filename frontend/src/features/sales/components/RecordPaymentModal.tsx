@@ -84,9 +84,8 @@ export function RecordPaymentModal({ isOpen, onClose, invoice, onSuccess }: Reco
         <Input
           label="Amount Paid (₹)"
           icon={<IndianRupee size={14} />}
-          type="number"
-          step="0.01"
-          max={invoice.amount_due}
+          type="text"
+          inputMode="decimal"
           placeholder={`Max ₹${invoice.amount_due}`}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}

@@ -30,10 +30,21 @@ export function CustomerModal({ isOpen, onClose, onSuccess, customer }: Customer
     notes: '',
   });
 
+  const [existingCustomers, setExistingCustomers] = useState<Customer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      crmApi
+        .getCustomers()
+        .then((res) => {
+          if (Array.isArray(res)) setExistingCustomers(res);
+          else if (res && 'items' in res) setExistingCustomers(res.items);
+        })
+        .catch(() => {});
+    }
+
     if (customer) {
       setFormData({
         name: customer.name || '',
@@ -74,10 +85,25 @@ export function CustomerModal({ isOpen, onClose, onSuccess, customer }: Customer
     setError(null);
   }, [customer, isOpen]);
 
+  // Live real-time mobile uniqueness check
+  const cleanPhone = formData.phone.trim();
+  const duplicateMatch =
+    cleanPhone.length > 0
+      ? existingCustomers.find((c) => c.phone && c.phone.trim() === cleanPhone && c.id !== customer?.id)
+      : null;
+  const phoneError = duplicateMatch
+    ? `Customer with mobile number '${cleanPhone}' already exists (${duplicateMatch.name}). Mobile numbers must be unique.`
+    : undefined;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.phone.trim()) {
       setError('Customer Name and Mobile Number are required.');
+      return;
+    }
+
+    if (duplicateMatch) {
+      setError(`Customer with mobile number '${cleanPhone}' already exists (${duplicateMatch.name}). Mobile numbers must be unique.`);
       return;
     }
 
@@ -133,13 +159,27 @@ export function CustomerModal({ isOpen, onClose, onSuccess, customer }: Customer
               Mobile Number <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <input
-              type="tel"
+              type="text"
+              inputMode="numeric"
               required
               placeholder="e.g. 9876543210"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: 8,
+                border: phoneError ? '1.5px solid #dc2626' : '1.5px solid var(--line)',
+                fontSize: 14,
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
             />
+            {phoneError && (
+              <span style={{ color: '#dc2626', fontSize: 12, marginTop: 4, display: 'block', fontWeight: 600 }}>
+                {phoneError}
+              </span>
+            )}
           </div>
         </div>
 
@@ -253,11 +293,14 @@ export function CustomerModal({ isOpen, onClose, onSuccess, customer }: Customer
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 4 }}>Credit Limit (₹)</label>
             <input
-              type="number"
-              min="0"
+              type="text"
+              inputMode="decimal"
               placeholder="Leave blank for no limit"
               value={formData.credit_limit ?? ''}
-              onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value ? parseFloat(e.target.value) : undefined })}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormData({ ...formData, credit_limit: val ? (parseFloat(val) || undefined) : undefined });
+              }}
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
@@ -268,12 +311,14 @@ export function CustomerModal({ isOpen, onClose, onSuccess, customer }: Customer
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 4 }}>Opening Balance (₹)</label>
             <input
-              type="number"
-              min="0"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               placeholder="0.00"
-              value={formData.opening_balance ?? 0}
-              onChange={(e) => setFormData({ ...formData, opening_balance: parseFloat(e.target.value) || 0 })}
+              value={formData.opening_balance ?? ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormData({ ...formData, opening_balance: val ? (parseFloat(val) || 0) : 0 });
+              }}
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
@@ -313,8 +358,8 @@ export function CustomerModal({ isOpen, onClose, onSuccess, customer }: Customer
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
-            style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: isSubmitting ? 0.7 : 1 }}
+            disabled={isSubmitting || !!phoneError}
+            style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: isSubmitting || !!phoneError ? 0.7 : 1 }}
           >
             {isSubmitting ? 'Saving...' : customer ? 'Update Customer' : 'Save Customer'}
           </button>

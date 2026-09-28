@@ -602,6 +602,13 @@ class CRMService:
                 detail="Mobile Number (phone) is required",
             )
 
+        existing_phone = await self.customer_repo.get_by_phone(tenant_id, customer_in.phone.strip())
+        if existing_phone:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"A customer with mobile number '{customer_in.phone.strip()}' already exists.",
+            )
+
         cust_data = customer_in.model_dump()
         customer = Customer(
             tenant_id=tenant_id,
@@ -631,6 +638,14 @@ class CRMService:
         ip_address: str | None = None,
     ) -> Customer:
         cust = await self.get_customer(tenant_id, customer_id)
+
+        if customer_in.phone and customer_in.phone.strip():
+            existing_phone = await self.customer_repo.get_by_phone(tenant_id, customer_in.phone.strip())
+            if existing_phone and existing_phone.id != customer_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"A customer with mobile number '{customer_in.phone.strip()}' already exists.",
+                )
         update_data = customer_in.model_dump(exclude_unset=True)
 
         balance_changed = False

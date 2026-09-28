@@ -151,6 +151,7 @@ class PaginatedInvoicesResponse(BaseModel):
 class CustomerStatementResponse(BaseModel):
     customer_id: UUID
     customer_name: str
+    opening_balance: float = 0.0
     total_invoiced: float
     total_paid: float
     outstanding_balance: float

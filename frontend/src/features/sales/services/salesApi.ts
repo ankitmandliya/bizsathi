@@ -64,6 +64,7 @@ export interface Payment {
 export interface CustomerStatement {
   customer_id: string;
   customer_name: string;
+  opening_balance?: number;
   total_invoiced: number;
   total_paid: number;
   outstanding_balance: number;

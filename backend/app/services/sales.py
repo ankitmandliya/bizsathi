@@ -486,6 +486,7 @@ class SalesService:
         return CustomerStatementResponse(
             customer_id=customer.id,
             customer_name=customer.name,
+            opening_balance=round(op_bal, 2),
             total_invoiced=round(total_invoiced, 2),
             total_paid=round(total_paid, 2),
             outstanding_balance=round(outstanding, 2),
