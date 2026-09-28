@@ -374,6 +374,7 @@ class ExpenseService:
         to_date: date | None = None,
         category_id: UUID | None = None,
         payment_method: str | None = None,
+        search: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Expense], int]:
@@ -387,6 +388,14 @@ class ExpenseService:
             stmt = stmt.where(Expense.category_id == category_id)
         if payment_method:
             stmt = stmt.where(Expense.payment_method == payment_method.upper())
+        if search and search.strip():
+            pattern = f"%{search.strip().lower()}%"
+            stmt = stmt.where(
+                func.lower(Expense.title).like(pattern)
+                | func.lower(Expense.vendor_name).like(pattern)
+                | func.lower(Expense.reference_number).like(pattern)
+                | func.lower(Expense.description).like(pattern)
+            )
 
         # Count total
         count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -408,6 +417,7 @@ class ExpenseService:
         to_date: date | None = None,
         category_id: UUID | None = None,
         payment_method: str | None = None,
+        search: str | None = None,
     ) -> ExpenseSummaryResponse:
         # Base filter conditions
         conditions = [Expense.tenant_id == tenant_id]
@@ -419,6 +429,14 @@ class ExpenseService:
             conditions.append(Expense.category_id == category_id)
         if payment_method:
             conditions.append(Expense.payment_method == payment_method.upper())
+        if search and search.strip():
+            pattern = f"%{search.strip().lower()}%"
+            conditions.append(
+                func.lower(Expense.title).like(pattern)
+                | func.lower(Expense.vendor_name).like(pattern)
+                | func.lower(Expense.reference_number).like(pattern)
+                | func.lower(Expense.description).like(pattern)
+            )
 
         # 1. Total expense & count
         total_stmt = select(
@@ -436,6 +454,7 @@ class ExpenseService:
                 ExpenseCategory.id.label("category_id"),
                 ExpenseCategory.name.label("category_name"),
                 func.sum(Expense.amount).label("category_total"),
+                func.count(Expense.id).label("category_count"),
             )
             .join(ExpenseCategory, Expense.category_id == ExpenseCategory.id)
             .where(*conditions)
@@ -451,6 +470,7 @@ class ExpenseService:
             cat_id = row.category_id
             cat_name = row.category_name
             cat_amt = float(row.category_total or 0)
+            cat_cnt = int(row.category_count or 0)
             pct = round((cat_amt / total_expense * 100), 2) if total_expense > 0 else 0.0
             category_breakdown.append(
                 CategoryBreakdownItem(
@@ -458,6 +478,7 @@ class ExpenseService:
                     category_name=cat_name,
                     amount=round(cat_amt, 2),
                     percentage=pct,
+                    count=cat_cnt,
                 )
             )
 

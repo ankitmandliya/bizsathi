@@ -121,11 +121,7 @@ export function ExpenseDetailModal({ isOpen, onClose, expense }: ExpenseDetailMo
                 EXPENSE DATE
               </span>
               <span style={{ fontWeight: 600, color: 'var(--text)' }}>
-                {new Date(expense.expense_date).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}
+                {expense.expense_date ? new Date(expense.expense_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
               </span>
             </div>
 

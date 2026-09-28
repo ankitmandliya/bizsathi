@@ -208,7 +208,7 @@ export function ExpensePieChart({ breakdown, totalExpense }: ExpensePieChartProp
                   {activeSlice.amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>
-                  {activeSlice.percentage.toFixed(1)}% ({activeSlice.count} {activeSlice.count === 1 ? 'expense' : 'expenses'})
+                  {activeSlice.percentage.toFixed(1)}% of total
                 </span>
               </>
             ) : (
@@ -277,7 +277,7 @@ export function ExpensePieChart({ breakdown, totalExpense }: ExpensePieChartProp
                   <div>
                     <span style={{ fontWeight: 700, color: 'var(--text)', display: 'block' }}>{item.category_name}</span>
                     <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                      {item.count} {item.count === 1 ? 'record' : 'records'}
+                      {item.count || 0} {item.count === 1 ? 'record' : 'records'}
                     </span>
                   </div>
                 </div>
@@ -361,9 +361,9 @@ export function ExpensePieChart({ breakdown, totalExpense }: ExpensePieChartProp
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.7)' }}>Total Expenses:</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)' }}>Total Records:</span>
               <strong style={{ color: '#cbd5e1' }}>
-                {activeSlice.count} {activeSlice.count === 1 ? 'expense' : 'expenses'}
+                {activeSlice.count || 0} {activeSlice.count === 1 ? 'record' : 'records'}
               </strong>
             </div>
           </div>

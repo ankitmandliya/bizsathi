@@ -12,6 +12,8 @@ import {
   TrendingDown,
   Hash,
   IndianRupee,
+  Search,
+  X,
 } from 'lucide-react';
 import {
   Expense,
@@ -73,6 +75,21 @@ function getPresetDateRange(preset: DatePreset): { from_date: string; to_date: s
   };
 }
 
+export function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return '—';
+  const parts = dateStr.slice(0, 10).split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      const d = new Date(year, month, day);
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+  }
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 export function ExpensesPage() {
   // Filters State
   const [datePreset, setDatePreset] = useState<DatePreset>('current_month');
@@ -80,7 +97,9 @@ export function ExpensesPage() {
   const [toDate, setToDate] = useState(() => getPresetDateRange('current_month').to_date);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Data State
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
@@ -107,7 +126,7 @@ export function ExpensesPage() {
 
   useEffect(() => {
     loadExpensesAndSummary();
-  }, [fromDate, toDate, selectedCategoryId, selectedPaymentMethod, page]);
+  }, [fromDate, toDate, selectedCategoryId, selectedPaymentMethod, searchQuery, page, pageSize]);
 
   const loadCategories = async () => {
     try {
@@ -127,8 +146,9 @@ export function ExpensesPage() {
         to_date: toDate || undefined,
         category_id: selectedCategoryId || undefined,
         payment_method: selectedPaymentMethod || undefined,
+        search: searchQuery.trim() || undefined,
         page,
-        page_size: 20,
+        page_size: pageSize,
       };
 
       const [resList, resSummary] = await Promise.all([
@@ -366,6 +386,58 @@ export function ExpensesPage() {
           ))}
         </select>
 
+        {/* Search Bar */}
+        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '200px' }}>
+          <Search
+            size={15}
+            color="var(--muted)"
+            style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+          />
+          <input
+            type="text"
+            placeholder="Search by title, vendor, ref no..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
+            style={{
+              width: '100%',
+              padding: '8px 30px 8px 32px',
+              borderRadius: '8px',
+              border: '1.5px solid var(--line)',
+              background: 'var(--bg-card)',
+              color: 'var(--text)',
+              fontSize: '13px',
+              outline: 'none',
+            }}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setPage(1);
+              }}
+              style={{
+                position: 'absolute',
+                right: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'var(--muted)',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
         {/* Payment Method Filter */}
         <select
           value={selectedPaymentMethod}
@@ -481,17 +553,72 @@ export function ExpensesPage() {
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>Filtered Expenses</h2>
-          <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-            Showing {expenses.length} of {totalExpenses} records
-          </span>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>Filtered Expenses</h2>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+              Showing {expenses.length} of {totalExpenses} records
+            </span>
+          </div>
+
+          {/* Prominent Search Bar */}
+          <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
+            <Search
+              size={16}
+              color="var(--muted)"
+              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+            />
+            <input
+              type="text"
+              placeholder="Search by title, vendor, ref no..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                width: '100%',
+                padding: '9px 32px 9px 36px',
+                borderRadius: '8px',
+                border: '1.5px solid var(--line)',
+                background: 'var(--bg-card)',
+                color: 'var(--text)',
+                fontSize: '13px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setPage(1);
+                }}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--muted)',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr style={{ background: 'var(--panel-alt)', textAlign: 'left', color: 'var(--muted)', fontSize: '11px', borderBottom: '1.5px solid var(--line)' }}>
-              <th style={{ padding: '12px 16px' }}>DATE</th>
+              <th style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>DATE</th>
               <th style={{ padding: '12px 16px' }}>CATEGORY</th>
               <th style={{ padding: '12px 16px' }}>TITLE</th>
               <th style={{ padding: '12px 16px' }}>VENDOR</th>
@@ -523,12 +650,8 @@ export function ExpensesPage() {
             ) : (
               expenses.map((exp) => (
                 <tr key={exp.id} style={{ borderBottom: '1px solid var(--line)' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)' }}>
-                    {new Date(exp.expense_date).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
+                  <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                    {formatDate(exp.expense_date)}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span
@@ -610,9 +733,53 @@ export function ExpensesPage() {
         </table>
 
         {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div style={{ padding: '14px 24px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          style={{
+            padding: '14px 24px',
+            borderTop: '1px solid var(--line)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+            background: 'var(--panel-alt)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>
+              <span>Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  border: '1.5px solid var(--line)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span>per page</span>
+            </div>
+
             <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+              Showing {totalExpenses === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalExpenses)} of {totalExpenses} records
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>
               Page {page} of {totalPages}
             </span>
             <div style={{ display: 'flex', gap: '6px' }}>
@@ -632,6 +799,7 @@ export function ExpensesPage() {
                   opacity: page <= 1 ? 0.5 : 1,
                   fontSize: '12px',
                   fontWeight: 600,
+                  color: 'var(--text)',
                 }}
               >
                 <ChevronLeft size={16} /> Previous
@@ -652,13 +820,14 @@ export function ExpensesPage() {
                   opacity: page >= totalPages ? 0.5 : 1,
                   fontSize: '12px',
                   fontWeight: 600,
+                  color: 'var(--text)',
                 }}
               >
                 Next <ChevronRight size={16} />
               </button>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Modals */}

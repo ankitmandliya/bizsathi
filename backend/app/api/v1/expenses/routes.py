@@ -153,6 +153,7 @@ async def list_expenses(
     to_date: date | None = Query(None),
     category_id: UUID | None = Query(None),
     payment_method: str | None = Query(None),
+    search: str | None = Query(None, description="Search by title, vendor, ref no, or notes"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -164,6 +165,7 @@ async def list_expenses(
         to_date=to_date,
         category_id=category_id,
         payment_method=payment_method,
+        search=search,
         page=page,
         page_size=page_size,
     )
@@ -189,6 +191,7 @@ async def get_expense_summary(
     to_date: date | None = Query(None),
     category_id: UUID | None = Query(None),
     payment_method: str | None = Query(None),
+    search: str | None = Query(None, description="Search query filter for summary"),
     db: AsyncSession = Depends(get_db),
 ) -> ExpenseSummaryResponse:
     service = ExpenseService(db)
@@ -198,6 +201,7 @@ async def get_expense_summary(
         to_date=to_date,
         category_id=category_id,
         payment_method=payment_method,
+        search=search,
     )
 
 

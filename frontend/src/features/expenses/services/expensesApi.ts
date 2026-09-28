@@ -65,6 +65,7 @@ export interface CategoryBreakdownItem {
   category_name: string;
   amount: number;
   percentage: number;
+  count: number;
 }
 
 export interface ExpenseSummaryResponse {
@@ -78,6 +79,7 @@ export interface ExpenseFilters {
   to_date?: string;
   category_id?: string;
   payment_method?: string;
+  search?: string;
   page?: number;
   page_size?: number;
 }

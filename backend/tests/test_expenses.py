@@ -44,6 +44,7 @@ def build_mock_db():
             mock_res.scalars.return_value.all.return_value = exps
             mock_res.scalar_one_or_none.return_value = exps[0] if exps else None
             mock_res.scalars.return_value.first.return_value = exps[0] if exps else None
+            mock_res.scalar.return_value = len(exps)
         elif "expense_categories" in sql_str:
             cats = [o for o in stored_objects if isinstance(o, ExpenseCategory)]
             mock_res.scalars.return_value.all.return_value = cats
@@ -173,3 +174,30 @@ async def test_create_and_list_expense():
     # Audit log created
     audits = [o for o in mock_db._stored_objects if isinstance(o, AuditLog)]  # type: ignore[attr-defined]
     assert any(a.action == "expense.create" for a in audits)
+
+
+@pytest.mark.asyncio
+async def test_search_expenses():
+    tenant_id = uuid4()
+    user_id = uuid4()
+    mock_db = build_mock_db()
+    service = ExpenseService(mock_db)
+
+    cat = await service.create_category(tenant_id, ExpenseCategoryCreate(name="Electricity"), user_id)
+
+    exp_in = ExpenseCreate(
+        category_id=cat.id,
+        title="September Power Bill",
+        amount=Decimal("12450.00"),
+        expense_date=date(2026, 9, 15),
+        payment_method="UPI",
+        vendor_name="State Electricity Board",
+        reference_number="BESCOM-9912",
+    )
+    await service.create_expense(tenant_id, user_id, exp_in)
+
+    # Search with matching title term
+    items, total = await service.list_expenses(tenant_id, search="Power")
+    assert total >= 1
+    assert any("Power" in e.title for e in items)
+

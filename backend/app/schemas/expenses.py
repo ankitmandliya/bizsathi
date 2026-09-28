@@ -142,6 +142,7 @@ class CategoryBreakdownItem(BaseModel):
     category_name: str
     amount: float
     percentage: float
+    count: int = 0
 
 
 class ExpenseSummaryResponse(BaseModel):
