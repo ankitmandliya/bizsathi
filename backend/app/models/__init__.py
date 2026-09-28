@@ -37,6 +37,7 @@ from app.models.sales import (
     QuotationItem,
     SalesSequence,
 )
+from app.models.marketing import Campaign, CampaignRecipient, Template
 
 __all__ = [
     "Base",
@@ -80,4 +81,9 @@ __all__ = [
     "SalaryAdvance",
     "Payroll",
     "Payslip",
+    # Marketing
+    "Template",
+    "Campaign",
+    "CampaignRecipient",
 ]
+

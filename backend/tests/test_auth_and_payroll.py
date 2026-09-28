@@ -21,7 +21,7 @@ async def test_change_password_flow(db_session):
     email = f"testchange_{uid}@example.com"
     user = User(
         email=email,
-        password_hash=hash_password("OldPassword123!"),
+        password_hash=hash_password("OldTest123$$!"),
         full_name="Test Password Change User",
         is_active=True,
     )
@@ -44,15 +44,15 @@ async def test_change_password_flow(db_session):
         # 1. Incorrect current password should fail
         res_fail = await ac.post("/api/v1/auth/change-password", headers=headers, json={
             "current_password": "WrongPassword!",
-            "new_password": "NewPassword123!",
+            "new_password": "NewTest123$$!",
         })
         assert res_fail.status_code == 400
         assert "incorrect" in res_fail.json()["detail"].lower()
 
         # 2. Correct current password should succeed
         res_ok = await ac.post("/api/v1/auth/change-password", headers=headers, json={
-            "current_password": "OldPassword123!",
-            "new_password": "NewPassword123!",
+            "current_password": "OldTest123$$!",
+            "new_password": "NewTest123$$!",
         })
         assert res_ok.status_code == 200
         assert res_ok.json()["message"] == "Password changed successfully"
@@ -60,7 +60,7 @@ async def test_change_password_flow(db_session):
         # 3. Verify login with new password
         res_login = await ac.post("/api/v1/auth/login", json={
             "email": email,
-            "password": "NewPassword123!",
+            "password": "NewTest123$$!",
         })
         assert res_login.status_code == 200
         assert "access_token" in res_login.json()
@@ -72,7 +72,7 @@ async def test_auto_employee_linking_for_profile_and_dashboard(db_session):
     email = f"unlinkedadmin_{uid}@example.com"
     user = User(
         email=email,
-        password_hash=hash_password("Password123!"),
+        password_hash=hash_password("Test123$$!"),
         full_name="Unlinked Admin User",
         is_active=True,
     )
@@ -115,7 +115,7 @@ async def test_payroll_count_and_payslip_net_payable(db_session):
     email = f"payrolluser_{uid}@example.com"
     user = User(
         email=email,
-        password_hash=hash_password("Password123!"),
+        password_hash=hash_password("Test123$$!"),
         full_name="Payroll Test User",
         is_active=True,
         is_superuser=True,

@@ -1,7 +1,106 @@
 from typing import Any
 from app.models.crm import Customer
 from app.models.hrm import Employee, Payslip
-from app.models.sales import Invoice, Payment
+from app.models.sales import Invoice, Payment, Quotation
+
+
+def generate_quotation_pdf_html(quotation: Quotation, customer: Customer) -> str:
+    items_rows = "".join(
+        f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">{idx + 1}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">{item.description}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">{item.quantity}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹{float(item.rate):,.2f}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">{float(item.tax_rate_percent):.1f}%</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₹{float(item.total):,.2f}</td>
+        </tr>
+        """
+        for idx, item in enumerate(quotation.items)
+    )
+
+    issue_date_str = quotation.issue_date.strftime("%d %b %Y") if hasattr(quotation.issue_date, 'strftime') else str(quotation.issue_date)
+    valid_until_str = quotation.valid_until.strftime("%d %b %Y") if getattr(quotation, 'valid_until', None) and hasattr(quotation.valid_until, 'strftime') else (str(quotation.valid_until) if getattr(quotation, 'valid_until', None) else 'N/A')
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Quotation {quotation.quotation_number}</title>
+    <style>
+        body {{ font-family: 'Inter', -apple-system, sans-serif; color: #1e293b; margin: 0; padding: 40px; background: #fff; }}
+        .header {{ display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }}
+        .brand {{ font-size: 24px; font-weight: 800; color: #2563eb; }}
+        .badge {{ display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; background: #eff6ff; color: #1d4ed8; }}
+        .table {{ width: 100%; border-collapse: collapse; margin-top: 24px; }}
+        .table th {{ background: #f8fafc; text-align: left; padding: 10px; font-size: 12px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }}
+        .totals {{ margin-top: 24px; width: 300px; margin-left: auto; border-top: 2px solid #e2e8f0; padding-top: 12px; }}
+        .totals-row {{ display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }}
+        .totals-row.grand {{ font-size: 18px; font-weight: 700; color: #0f172a; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 6px; }}
+        @media print {{ body {{ padding: 0; }} }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <div class="brand">BizSathi</div>
+            <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">SALES QUOTATION & PROPOSAL</p>
+        </div>
+        <div style="text-align: right;">
+            <h2 style="margin: 0; font-size: 20px; color: #0f172a;">{quotation.quotation_number}</h2>
+            <div class="badge" style="margin-top: 6px;">{quotation.status}</div>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; margin-bottom: 32px; background: #f8fafc; padding: 20px; border-radius: 8px;">
+        <div>
+            <p style="font-size: 12px; text-transform: uppercase; color: #64748b; margin: 0 0 6px 0; font-weight: 600;">Quotation For</p>
+            <h3 style="margin: 0; font-size: 16px;">{customer.name}</h3>
+            {f'<p style="margin: 4px 0; color: #475569;">{customer.company}</p>' if customer.company else ''}
+            {f'<p style="margin: 4px 0; color: #475569;">{customer.billing_address}</p>' if customer.billing_address else ''}
+            {f'<p style="margin: 4px 0; color: #475569; font-size: 13px;">GSTIN: {customer.gstin}</p>' if customer.gstin else ''}
+            <p style="margin: 4px 0; color: #64748b; font-size: 13px;">{customer.email or ''} {customer.phone or ''}</p>
+        </div>
+        <div style="text-align: right;">
+            <p style="margin: 4px 0; font-size: 13px;"><strong>Issue Date:</strong> {issue_date_str}</p>
+            <p style="margin: 4px 0; font-size: 13px;"><strong>Valid Until:</strong> {valid_until_str}</p>
+        </div>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 40px;">#</th>
+                <th>Item Description</th>
+                <th style="text-align: center; width: 80px;">Qty</th>
+                <th style="text-align: right; width: 110px;">Rate</th>
+                <th style="text-align: right; width: 80px;">Tax %</th>
+                <th style="text-align: right; width: 120px;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {items_rows}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div class="totals-row">
+            <span>Subtotal</span>
+            <span>₹{float(quotation.subtotal):,.2f}</span>
+        </div>
+        <div class="totals-row">
+            <span>Tax Amount</span>
+            <span>₹{float(quotation.tax_amount):,.2f}</span>
+        </div>
+        <div class="totals-row grand">
+            <span>Total Amount</span>
+            <span>₹{float(quotation.total_amount):,.2f}</span>
+        </div>
+    </div>
+
+    {f'<div style="margin-top: 40px; padding: 16px; background: #fffbeb; border-radius: 6px; font-size: 13px; color: #92400e;"><strong>Notes / Terms:</strong> {quotation.notes}</div>' if quotation.notes else ''}
+</body>
+</html>"""
 
 
 def generate_invoice_pdf_html(invoice: Invoice, customer: Customer) -> str:

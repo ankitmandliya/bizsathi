@@ -67,7 +67,7 @@ async def test_setup_employee_login():
     mock_tm_res.scalar_one_or_none.return_value = None
     db.execute.side_effect = [mock_user_res, mock_tm_res]
 
-    res = await service.setup_employee_login(tenant_id, emp.id, "ankit@company.com", "Password123!", admin_id)
+    res = await service.setup_employee_login(tenant_id, emp.id, "ankit@company.com", "Test123$$!", admin_id)
     assert res is not None
     assert emp.user_id is not None
     db.commit.assert_called()
@@ -90,7 +90,7 @@ async def test_create_employee_with_login_access():
         employment_type="Full-time",
         give_login_access=True,
         username="sunil@company.com",
-        password="Password123!",
+        password="Test123$$!",
     )
 
     await service.create_employee(tenant_id, create_data, admin_id)

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Calendar, DollarSign, FileText, Globe, Percent, Target, User } from 'lucide-react';
+import { Briefcase, Calendar, FileText, Globe, IndianRupee, Percent, Target, User } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
@@ -127,7 +127,7 @@ export function DealFormModal({
         <div style={twoCol}>
           <Input
             label="Deal Value (₹)"
-            icon={<DollarSign size={14} />}
+            icon={<IndianRupee size={14} />}
             type="number"
             {...register('value')}
             error={errors.value?.message}

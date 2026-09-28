@@ -14,6 +14,7 @@ from app.api.v1.users.routes import router as users_router
 from app.api.v1.vendors.routes import router as vendors_router
 
 from app.api.v1.sales.routes import router as sales_router
+from app.api.v1.marketing.routes import router as marketing_router
 
 router = APIRouter(prefix="/api/v1")
 
@@ -30,3 +31,5 @@ router.include_router(payroll_router)
 router.include_router(subscriptions_router)
 router.include_router(reports_router)
 router.include_router(communication_router)
+router.include_router(marketing_router)
+

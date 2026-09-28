@@ -276,7 +276,7 @@ def upgrade() -> None:
         sa.Column("customer_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("customers.id"), nullable=True),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("value", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("currency", sa.String(10), nullable=False, server_default="USD"),
+        sa.Column("currency", sa.String(10), nullable=False, server_default="INR"),
         sa.Column("stage_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("pipeline_stages.id"), nullable=False),
         sa.Column("probability", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("expected_closing_date", sa.DateTime(timezone=True), nullable=True),
@@ -313,7 +313,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_activities_tenant_id", "activities", ["tenant_id"])
 
-    # 19. Seed default tenant & demo user (admin@example.com / password123)
+    # 19. Seed default tenant & demo user (admin@example.com / Test123$$)
     users_table = sa.table(
         "users",
         sa.column("id", postgresql.UUID(as_uuid=True)),

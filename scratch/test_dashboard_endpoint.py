@@ -6,7 +6,7 @@ async def test_dashboard():
         # 1. Login
         login_res = await client.post("http://localhost:8000/api/v1/auth/login", json={
             "email": "priya.verma@bizsathi.com",
-            "password": "Password123!"
+            "password": "Test123$$!"
         })
         print("LOGIN STATUS:", login_res.status_code)
         if login_res.status_code != 200:

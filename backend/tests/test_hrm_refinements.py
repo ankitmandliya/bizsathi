@@ -156,14 +156,14 @@ async def test_hr_permission_assignment_and_pdf_download(db_session):
         res = await ac.post(
             f"/api/v1/hrm/employees/{emp_hr_id}/setup-login",
             headers=admin_headers,
-            json={"username": emp_hr_email, "password": "HRPassword123!", "role": "HR"},
+            json={"username": emp_hr_email, "password": "HRTest123$$!", "role": "HR"},
         )
         assert res.status_code == 200
 
         # Login as HR Manager
         login_res = await ac.post(
             "/api/v1/auth/login",
-            json={"email": emp_hr_email, "password": "HRPassword123!"},
+            json={"email": emp_hr_email, "password": "HRTest123$$!"},
         )
         assert login_res.status_code == 200
         hr_token = login_res.json()["access_token"]

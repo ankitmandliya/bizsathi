@@ -6,7 +6,6 @@ import {
   Building2,
   Calendar,
   Clock,
-  DollarSign,
   FileText,
   HelpCircle,
   IndianRupee,
@@ -21,6 +20,7 @@ import {
   UserCheck,
   Users,
   X,
+  Megaphone,
 } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth';
@@ -35,13 +35,18 @@ const salesNav = [
   { to: '/crm',             label: 'CRM & Deals',     icon: Briefcase },
   { to: '/customers',        label: 'Customers',        icon: Users },
   { to: '/sales/quotations', label: 'Quotations',       icon: FileText },
-  { to: '/sales/invoices',   label: 'Invoices',         icon: DollarSign },
+  { to: '/sales/invoices',   label: 'Invoices',         icon: IndianRupee },
+];
+
+const marketingNav = [
+  { to: '/marketing',        label: 'Campaigns & Templates', icon: Megaphone },
 ];
 
 const operationsNav = [
   { to: '/vendors',  label: 'Inventory', icon: Building2 },
   { to: '/reports',  label: 'Expenses',  icon: BarChart3 },
 ];
+
 
 const peopleNav = [
   { to: '/hrm/my-dashboard', label: 'My Dashboard',    icon: UserCheck },
@@ -181,9 +186,11 @@ export default function DashboardLayout() {
 
         <NavGroup label="OVERVIEW" items={filteredOverviewNav} onNavigate={closeSidebar} />
         {!isPlainEmployee && <NavGroup label="SALES" items={salesNav} onNavigate={closeSidebar} />}
+        {!isPlainEmployee && <NavGroup label="MARKETING" items={marketingNav} onNavigate={closeSidebar} />}
         {!isPlainEmployee && <NavGroup label="OPERATIONS" items={operationsNav} onNavigate={closeSidebar} />}
         <NavGroup label="PEOPLE" items={filteredPeopleNav} onNavigate={closeSidebar} />
         {!isPlainEmployee && <NavGroup label="SETTINGS" items={settingsNav} onNavigate={closeSidebar} />}
+
 
         {/* Profile Card at bottom */}
         <div className="sidebar-profile">

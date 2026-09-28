@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { hrmApi, Holiday, LeaveType } from '../hrm/services/hrmApi';
 import { getErrorMessage } from '../../utils/error';
+import { marketingApi } from '../../services/marketingApi';
+import { MessageSquare, Mail, Image as ImageIcon } from 'lucide-react';
 
 const WEEKDAYS = [
   { id: '0', label: 'Mon' },
@@ -25,7 +27,8 @@ const WEEKDAYS = [
 ];
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'schedule' | 'holidays' | 'leave_types'>('schedule');
+
+  const [activeTab, setActiveTab] = useState<'schedule' | 'holidays' | 'leave_types' | 'communication'>('schedule');
 
   // Work Schedule State
   const [workingDays, setWorkingDays] = useState<string[]>(['0', '1', '2', '3', '4']);
@@ -34,6 +37,15 @@ export function SettingsPage() {
   const [lateGrace, setLateGrace] = useState(15);
   const [halfDayThreshold, setHalfDayThreshold] = useState(4);
   const [payday, setPayday] = useState(1);
+
+  // Communication & Branding State
+  const [logoUrl, setLogoUrl] = useState('');
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [whatsappApiKey, setWhatsappApiKey] = useState('');
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [emailSenderName, setEmailSenderName] = useState('');
+  const [savingChannels, setSavingChannels] = useState(false);
 
   // Holidays & Leave Types
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -154,6 +166,28 @@ export function SettingsPage() {
     }
   };
 
+  const handleSaveChannels = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingChannels(true);
+    setMessage(null);
+    try {
+      await marketingApi.updateChannelSettings({
+        logo_url: logoUrl || null,
+        whatsapp_enabled: whatsappEnabled,
+        whatsapp_business_number: whatsappNumber || null,
+        whatsapp_api_key: whatsappApiKey || null,
+        email_enabled: emailEnabled,
+        email_sender_name: emailSenderName || null,
+      });
+      setMessage({ text: 'Branding & Communication Settings saved successfully!', type: 'success' });
+    } catch (err: unknown) {
+      setMessage({ text: getErrorMessage(err, 'Failed to save communication channels'), type: 'error' });
+    } finally {
+      setSavingChannels(false);
+    }
+  };
+
+
   return (
     <div style={{ padding: '24px', maxWidth: '1100px' }}>
       {/* Header */}
@@ -165,7 +199,7 @@ export function SettingsPage() {
           Business Settings
         </h1>
         <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: '14px' }}>
-          Configure work schedule, official holidays, leave policies, and payroll cycle
+          Configure work schedule, official holidays, leave policies, and communication channels
         </p>
       </div>
 
@@ -196,7 +230,14 @@ export function SettingsPage() {
         >
           <Layers size={16} /> Leave Policy ({leaveTypes.length})
         </button>
+        <button
+          onClick={() => setActiveTab('communication')}
+          style={{ padding: '10px 18px', fontWeight: 600, fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: activeTab === 'communication' ? '2.5px solid #4f46e5' : '2.5px solid transparent', color: activeTab === 'communication' ? '#4f46e5' : 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <MessageSquare size={16} /> Branding & Channels
+        </button>
       </div>
+
 
       {/* Tab 1: Work Schedule */}
       {activeTab === 'schedule' && (
@@ -438,7 +479,135 @@ export function SettingsPage() {
         </div>
       )}
 
+      {/* Tab 4: Communication & Branding */}
+      {activeTab === 'communication' && (
+        <form onSubmit={handleSaveChannels} style={{ background: 'var(--bg-card)', border: '1px solid var(--line)', borderRadius: '14px', padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <MessageSquare size={18} color="#4f46e5" /> Communication Channels & Branding Settings
+          </h2>
+
+          {/* Logo URL */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '6px' }}>
+              COMPANY LOGO URL
+            </label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input
+                type="url"
+                placeholder="https://your-bucket.s3.amazonaws.com/logo.png"
+                value={logoUrl}
+                onChange={e => setLogoUrl(e.target.value)}
+                style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--line)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '14px', outline: 'none' }}
+              />
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>
+              Used in Email Headers and supported WhatsApp header images.
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+            {/* WhatsApp Settings */}
+            <div style={{ padding: '18px', borderRadius: '12px', border: '1.5px solid var(--line)', background: whatsappEnabled ? 'rgba(34, 197, 94, 0.05)' : 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                  <MessageSquare size={18} color="#22c55e" /> WhatsApp Business API
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={whatsappEnabled}
+                    onChange={e => setWhatsappEnabled(e.target.checked)}
+                  /> Enable Channel
+                </label>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
+                  WHATSAPP BUSINESS NUMBER
+                </label>
+                <input
+                  type="text"
+                  placeholder="+919876543210"
+                  value={whatsappNumber}
+                  onChange={e => setWhatsappNumber(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '13px', outline: 'none' }}
+                  disabled={!whatsappEnabled}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
+                  PROVIDER API KEY (Gupshup / Interakt)
+                </label>
+                <input
+                  type="password"
+                  placeholder="••••••••••••••••"
+                  value={whatsappApiKey}
+                  onChange={e => setWhatsappApiKey(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '13px', outline: 'none' }}
+                  disabled={!whatsappEnabled}
+                />
+              </div>
+            </div>
+
+            {/* Email Settings */}
+            <div style={{ padding: '18px', borderRadius: '12px', border: '1.5px solid var(--line)', background: emailEnabled ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                  <Mail size={18} color="#6366f1" /> Email Channel (Transactional/SES)
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={emailEnabled}
+                    onChange={e => setEmailEnabled(e.target.checked)}
+                  /> Enable Channel
+                </label>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
+                  EMAIL SENDER DISPLAY NAME ("From" Name)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. BizSathi Sales Team"
+                  value={emailSenderName}
+                  onChange={e => setEmailSenderName(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '13px', outline: 'none' }}
+                  disabled={!emailEnabled}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="submit"
+              disabled={savingChannels}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 24px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                opacity: savingChannels ? 0.7 : 1,
+              }}
+            >
+              <Save size={16} /> {savingChannels ? 'Saving...' : 'Save Communication Settings'}
+            </button>
+          </div>
+        </form>
+      )}
+
       {/* Add Holiday Modal */}
+
       {showHolidayModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <form onSubmit={handleAddHoliday} style={{ background: 'var(--bg-card)', borderRadius: 14, padding: 24, width: '100%', maxWidth: 450, margin: 'auto', border: '1px solid var(--line)' }}>

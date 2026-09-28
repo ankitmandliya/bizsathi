@@ -31,11 +31,17 @@ export function InvoiceModal({ isOpen, onClose, onSuccess }: InvoiceModalProps) 
 
   useEffect(() => {
     if (isOpen) {
+      setSelectedCustomerId('');
+      setIssueDate(new Date().toISOString().split('T')[0]);
+      setDueDate(new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0]);
+      setNotes('');
+      setItems([{ description: '', quantity: 1, rate: 0, tax_rate_percent: 18 }]);
+      setError(null);
+      setCreditWarning(null);
       crmApi.getCustomers().then((res) => {
         if (Array.isArray(res)) setCustomers(res);
         else if (res && 'items' in res) setCustomers(res.items);
       }).catch(() => {});
-      setCreditWarning(null);
     }
   }, [isOpen]);
 

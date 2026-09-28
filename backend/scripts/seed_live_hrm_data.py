@@ -170,7 +170,7 @@ async def seed_tenant_hrm_data(tenant_id: UUID, admin_user_id: UUID):
                     u_existing = User(
                         id=uuid4(),
                         email=cfg["email"],
-                        password_hash=hash_password("Password123!"),
+                        password_hash=hash_password("Test123$$!"),
                         full_name=cfg["name"],
                         is_active=True,
                         is_verified=True,

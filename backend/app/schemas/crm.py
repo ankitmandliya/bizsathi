@@ -178,7 +178,7 @@ class CustomerImportSummary(BaseModel):
 class DealBase(BaseModel):
     title: str = Field(..., min_length=1)
     value: int = 0
-    currency: str = "USD"
+    currency: str = "INR"
     stage_id: UUID
     lead_id: UUID | None = None
     customer_id: UUID | None = None

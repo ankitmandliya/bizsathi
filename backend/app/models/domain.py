@@ -17,6 +17,13 @@ class Tenant(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     domain: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    logo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    whatsapp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    whatsapp_business_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    whatsapp_api_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    email_sender_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "users"

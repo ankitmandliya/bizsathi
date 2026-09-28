@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/Button';
 import { Invoice, Payment, salesApi } from '../services/salesApi';
 import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { getErrorMessage } from '../../../utils/error';
+import { getAccessToken } from '../../../services/auth/tokens';
 
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +53,9 @@ export function InvoiceDetailPage() {
   const handleDownloadPdf = () => {
     if (!id) return;
     const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-    window.open(`${backendUrl}/api/v1/sales/invoices/${id}/pdf`, '_blank');
+    const token = getAccessToken();
+    const pdfUrl = `${backendUrl}/api/v1/sales/invoices/${id}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    window.open(pdfUrl, '_blank');
   };
 
   if (loading) {

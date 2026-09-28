@@ -4,8 +4,8 @@ import {
   Briefcase,
   Calendar,
   CheckCircle2,
-  DollarSign,
   Eye,
+  IndianRupee,
   Kanban,
   List,
   Plus,
@@ -180,7 +180,7 @@ export function DealsListPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
         <div className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <DollarSign size={22} />
+            <IndianRupee size={22} />
           </div>
           <div>
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)' }}>Total Pipeline</span>

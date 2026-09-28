@@ -1,18 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, Plus, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Plus, ArrowRight, Eye } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { Quotation, salesApi } from '../services/salesApi';
 import { QuotationModal } from '../components/QuotationModal';
+import { QuotationDetailModal } from '../components/QuotationDetailModal';
 import { getErrorMessage } from '../../../utils/error';
 
 export function QuotationsListPage() {
+  const navigate = useNavigate();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedQuotationId, setSelectedQuotationId] = useState<string | null>(null);
   const [convertingId, setConvertingId] = useState<string | null>(null);
 
   const fetchQuotations = useCallback(async () => {
@@ -130,8 +134,18 @@ export function QuotationsListPage() {
                 </tr>
               ) : (
                 quotations.map((q) => (
-                  <tr key={q.id}>
-                    <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{q.quotation_number}</td>
+                  <tr key={q.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/sales/quotations/${q.id}`)}>
+                    <td>
+                      <span
+                        style={{ fontWeight: 700, color: 'var(--primary)', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/sales/quotations/${q.id}`);
+                        }}
+                      >
+                        {q.quotation_number}
+                      </span>
+                    </td>
                     <td>{new Date(q.issue_date).toLocaleDateString()}</td>
                     <td>{q.valid_until ? new Date(q.valid_until).toLocaleDateString() : '—'}</td>
                     <td>
@@ -142,19 +156,36 @@ export function QuotationsListPage() {
                     <td style={{ textAlign: 'right', fontWeight: 700 }}>
                       ₹{q.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {q.status !== 'Accepted' ? (
+                    <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', alignItems: 'center' }}>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          loading={convertingId === q.id}
-                          onClick={() => handleConvertToInvoice(q.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedQuotationId(q.id);
+                          }}
+                          title="Quick View"
                         >
-                          Convert to Invoice <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+                          <Eye size={14} />
                         </Button>
-                      ) : (
-                        <span style={{ fontSize: '12px', color: 'var(--success)', fontWeight: 600 }}>Converted</span>
-                      )}
+
+                        {q.status !== 'Accepted' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            loading={convertingId === q.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConvertToInvoice(q.id);
+                            }}
+                          >
+                            Convert to Invoice <ArrowRight size={14} style={{ marginLeft: '4px' }} />
+                          </Button>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: 'var(--success)', fontWeight: 600 }}>Converted</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -167,6 +198,13 @@ export function QuotationsListPage() {
       <QuotationModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
+        onSuccess={fetchQuotations}
+      />
+
+      <QuotationDetailModal
+        isOpen={!!selectedQuotationId}
+        quotationId={selectedQuotationId}
+        onClose={() => setSelectedQuotationId(null)}
         onSuccess={fetchQuotations}
       />
     </div>

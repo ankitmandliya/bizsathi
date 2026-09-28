@@ -75,7 +75,7 @@ class Deal(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     value: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    currency: Mapped[str] = mapped_column(String(10), default="USD", nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), default="INR", nullable=False)
 
     stage_id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("pipeline_stages.id"), nullable=False)
     stage: Mapped["PipelineStage"] = relationship("PipelineStage")

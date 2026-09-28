@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, DollarSign, FileText, Plus } from 'lucide-react';
+import { CreditCard, FileText, IndianRupee, Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { Invoice, salesApi } from '../services/salesApi';
@@ -76,7 +76,7 @@ export function InvoicesListPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
         <div className="card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.12)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <DollarSign size={24} />
+            <IndianRupee size={24} />
           </div>
           <div>
             <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Total Amount Due</span>

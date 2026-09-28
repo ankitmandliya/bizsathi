@@ -208,7 +208,7 @@ export function LeadDetailPage() {
               <div style={{ paddingTop: '16px', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
                   { label: 'Source', value: lead.source },
-                  { label: 'Est. Value', value: `$${lead.estimated_value.toLocaleString()}` },
+                  { label: 'Est. Value', value: `₹${lead.estimated_value.toLocaleString('en-IN')}` },
                   ...(lead.industry ? [{ label: 'Industry', value: lead.industry }] : []),
                 ].map(({ label, value }) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>

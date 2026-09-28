@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Briefcase, DollarSign, Globe, Mail, MessageCircle, Phone, Tag, User, Sparkles, FileText } from 'lucide-react';
+import { Building2, Briefcase, Globe, IndianRupee, Mail, MessageCircle, Phone, Tag, User, Sparkles, FileText } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
@@ -169,7 +169,7 @@ export function LeadFormModal({
           />
           <Input
             label="Estimated Value (₹)"
-            icon={<DollarSign size={14} />}
+            icon={<IndianRupee size={14} />}
             type="number"
             placeholder="50000"
             {...register('estimated_value')}

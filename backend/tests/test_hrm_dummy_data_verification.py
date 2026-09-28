@@ -151,7 +151,7 @@ async def _run_verification(db: AsyncSession):
             status="Active",
             give_login_access=True,
             username="rahul.sharma@bizsathi.com",
-            password="Password123!",
+            password="Test123$$!",
         ),
         admin_user.id,
     )
@@ -171,7 +171,7 @@ async def _run_verification(db: AsyncSession):
             status="Active",
             give_login_access=True,
             username="priya.verma@bizsathi.com",
-            password="Password123!",
+            password="Test123$$!",
         ),
         admin_user.id,
     )
@@ -209,7 +209,7 @@ async def _run_verification(db: AsyncSession):
             status="Active",
             give_login_access=True,
             username="neha.joshi@bizsathi.com",
-            password="Password123!",
+            password="Test123$$!",
         ),
         admin_user.id,
     )

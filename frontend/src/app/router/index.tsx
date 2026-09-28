@@ -35,6 +35,7 @@ function ModulePlaceholderPage({ name }: { name: string }) {
 import { InvoicesListPage } from '../../features/sales/pages/InvoicesListPage';
 import { InvoiceDetailPage } from '../../features/sales/pages/InvoiceDetailPage';
 import { QuotationsListPage } from '../../features/sales/pages/QuotationsListPage';
+import { QuotationDetailPage } from '../../features/sales/pages/QuotationDetailPage';
 import { EmployeesPage } from '../../features/hrm/pages/EmployeesPage';
 import { AttendancePage } from '../../features/hrm/pages/AttendancePage';
 import { LeavePage } from '../../features/hrm/pages/LeavePage';
@@ -43,7 +44,9 @@ import { PayrollPage } from '../../features/hrm/pages/PayrollPage';
 import { EmployeeDashboardPage } from '../../features/hrm/pages/EmployeeDashboardPage';
 import { ProfilePage } from '../../features/hrm/pages/ProfilePage';
 import { SettingsPage } from '../../features/settings/SettingsPage';
+import { MarketingPage } from '../../features/marketing/MarketingPage';
 import { hrmApi } from '../../features/hrm/services/hrmApi';
+
 
 import { useState, useEffect } from 'react';
 
@@ -99,6 +102,7 @@ export default function AppRouter() {
         <Route path="/sales/invoices" element={<InvoicesListPage />} />
         <Route path="/sales/invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="/sales/quotations" element={<QuotationsListPage />} />
+        <Route path="/sales/quotations/:id" element={<QuotationDetailPage />} />
         <Route path="/customers" element={<CustomersListPage />} />
         <Route path="/vendors" element={<ModulePlaceholderPage name="Vendors" />} />
         <Route path="/hrm" element={<Navigate to="/hrm/employees" replace />} />
@@ -115,8 +119,10 @@ export default function AppRouter() {
 
         <Route path="/subscriptions" element={<ModulePlaceholderPage name="Subscriptions" />} />
         <Route path="/reports" element={<ModulePlaceholderPage name="Reports" />} />
-        <Route path="/communication" element={<ModulePlaceholderPage name="Communication" />} />
+        <Route path="/marketing" element={<MarketingPage />} />
+        <Route path="/communication" element={<MarketingPage />} />
         <Route path="/docs" element={<DocsPage />} />
+
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

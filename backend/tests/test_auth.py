@@ -16,7 +16,7 @@ client = TestClient(app)
 
 
 def test_password_hashing() -> None:
-    raw_password = "SecretPassword123!"
+    raw_password = "SecretTest123$$!"
     hashed = hash_password(raw_password)
     assert hashed != raw_password
     assert verify_password(raw_password, hashed) is True
@@ -146,7 +146,7 @@ def test_forgot_password_and_reset_flow() -> None:
         app.dependency_overrides[get_db] = mock_db_invalid_token
         res2 = client.post(
             "/api/v1/auth/reset-password",
-            json={"token": "invalid-token", "new_password": "NewPassword123!"},
+            json={"token": "invalid-token", "new_password": "NewTest123$$!"},
         )
         assert res2.status_code == 400
         assert "Invalid or expired" in res2.json()["detail"]

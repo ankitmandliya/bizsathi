@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Calendar, CreditCard, DollarSign, FileText } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Calendar, CreditCard, FileText, IndianRupee } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -22,6 +22,16 @@ export function RecordPaymentModal({ isOpen, onClose, invoice, onSuccess }: Reco
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      setAmount('');
+      setNotes('');
+      setPaymentMode('UPI');
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setError(null);
+    }
+  }, [isOpen, invoice?.id]);
+
   if (!invoice) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,6 +46,11 @@ export function RecordPaymentModal({ isOpen, onClose, invoice, onSuccess }: Reco
       return;
     }
 
+    if (!notes.trim()) {
+      setError('Notes / Transaction Reference is required.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -44,7 +59,7 @@ export function RecordPaymentModal({ isOpen, onClose, invoice, onSuccess }: Reco
         amount: payNum,
         payment_date: new Date(paymentDate).toISOString(),
         payment_mode: paymentMode,
-        notes: notes || undefined,
+        notes: notes.trim(),
       });
       onSuccess();
       onClose();
@@ -68,7 +83,7 @@ export function RecordPaymentModal({ isOpen, onClose, invoice, onSuccess }: Reco
 
         <Input
           label="Amount Paid (₹)"
-          icon={<DollarSign size={14} />}
+          icon={<IndianRupee size={14} />}
           type="number"
           step="0.01"
           max={invoice.amount_due}
@@ -102,11 +117,12 @@ export function RecordPaymentModal({ isOpen, onClose, invoice, onSuccess }: Reco
         />
 
         <Input
-          label="Notes / Transaction Reference"
+          label="Notes / Transaction Reference *"
           icon={<FileText size={14} />}
           placeholder="e.g. UTR #123456789 or Google Pay reference ID"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
+          required
         />
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>

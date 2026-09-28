@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { FileText } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { CustomerStatement, salesApi } from '../services/salesApi';
@@ -14,6 +15,7 @@ export function CustomerStatementModal({ isOpen, onClose, customerId }: Customer
   const [statement, setStatement] = useState<CustomerStatement | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && customerId) {
@@ -120,23 +122,62 @@ export function CustomerStatementModal({ isOpen, onClose, customerId }: Customer
                     <th>Receipt #</th>
                     <th>Date</th>
                     <th>Mode</th>
+                    <th>Notes / Ref</th>
                     <th style={{ textAlign: 'right' }}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {statement.payments.map((p) => (
-                    <tr key={p.id}>
-                      <td style={{ fontWeight: 600 }}>{p.receipt_number}</td>
-                      <td>{new Date(p.payment_date).toLocaleDateString()}</td>
-                      <td>{p.payment_mode}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
-                        +₹{p.amount.toLocaleString('en-IN')}
-                      </td>
-                    </tr>
+                    <React.Fragment key={p.id}>
+                      <tr>
+                        <td style={{ fontWeight: 600 }}>{p.receipt_number}</td>
+                        <td>{new Date(p.payment_date).toLocaleDateString()}</td>
+                        <td>{p.payment_mode}</td>
+                        <td>
+                          {p.notes ? (
+                            <button
+                              type="button"
+                              style={{
+                                background: expandedNoteId === p.id ? 'var(--primary-subtle, #eff6ff)' : 'transparent',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                padding: '3px 8px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '12px',
+                                color: 'var(--primary)',
+                                fontWeight: 500,
+                              }}
+                              onClick={() => setExpandedNoteId(expandedNoteId === p.id ? null : p.id)}
+                              title={p.notes}
+                            >
+                              <FileText size={13} /> {expandedNoteId === p.id ? 'Hide Note' : 'View Note'}
+                            </button>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
+                          +₹{p.amount.toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                      {expandedNoteId === p.id && p.notes && (
+                        <tr style={{ background: '#f8fafc' }}>
+                          <td colSpan={5} style={{ padding: '8px 14px', fontSize: '12.5px', color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <FileText size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                              <strong>Transaction Reference / Notes:</strong> {p.notes}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                   {statement.payments.length === 0 && (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No payments recorded yet.</td>
+                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No payments recorded yet.</td>
                     </tr>
                   )}
                 </tbody>

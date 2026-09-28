@@ -154,7 +154,7 @@ function DevLoginHint() {
       style={{ marginTop: '16px', justifyContent: 'center', textAlign: 'center' }}
     >
       <span>
-        <strong>Demo login:</strong> admin@example.com / password123
+        <strong>Demo login:</strong> admin@example.com / Test123$$
       </span>
     </div>
   );

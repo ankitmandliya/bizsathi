@@ -30,6 +30,12 @@ export function QuotationModal({ isOpen, onClose, onSuccess }: QuotationModalPro
 
   useEffect(() => {
     if (isOpen) {
+      setSelectedCustomerId('');
+      setIssueDate(new Date().toISOString().split('T')[0]);
+      setValidUntil(new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
+      setNotes('');
+      setItems([{ description: '', quantity: 1, rate: 0, tax_rate_percent: 18 }]);
+      setError(null);
       crmApi.getCustomers().then((res) => {
         if (Array.isArray(res)) setCustomers(res);
         else if (res && 'items' in res) setCustomers(res.items);
