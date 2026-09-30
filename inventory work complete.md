@@ -9,7 +9,7 @@
 - **Schemas & Repositories & Business Logic Services:** Implemented full CRUD, SKU uniqueness, opening stock, stock in, stock out with insufficient stock validation (negative stock prohibited), stock adjustment with variance calculation, stock movement ledger, dashboard summary, and valuation/stock ledger reports.
 - **Bulk Product Import (Gap 1):** Built `GET /api/v1/inventory/products/import-template` and `POST /api/v1/inventory/products/import`. Implemented `import_products` service handling SKU deduplication (skipping matching SKUs), category/unit auto-creation, price/stock validation, row-level error reporting (`ProductImportSummaryResponse`), and atomic opening stock movement creation. Created `ProductImportModal.tsx` with sample CSV download and wired it into `InventoryPage.tsx`.
 - **Granular Permission Keys (Gap 2):** Upgraded all Inventory routes to specific action-based permission keys (`inventory.dashboard.view`, `inventory.product.*`, `inventory.category.*`, `inventory.unit.*`, `inventory.stock_in.*`, `inventory.stock_out.*`, `inventory.adjustment.*`, `inventory.ledger.view`, `inventory.report.view`).
-- **Finalized Invoice Edit Finding (Gap 3):** Inspected Sales module (`backend/app/services/sales.py`). Confirmed that finalized/sent invoices in BizSathi cannot be edited via `PUT` — line item changes require invoice cancellation (which triggers stock reversal movements) or creating a new invoice.
+- **Finalized Invoice Edit Finding (Gap 3):** Inspected Sales module (`backend/app/services/sales.py`). Confirmed that finalized/sent invoices in BizSathi cannot be edited via `PUT` -line item changes require invoice cancellation (which triggers stock reversal movements) or creating a new invoice.
 - **Fresh Database Migration (Gap 4):** Verified `alembic upgrade head` runs cleanly and applies `010_inventory_module.py` on fresh database schemas.
 - **Static Analysis & Build Verification (Gap 5):** Executed `ruff check`, `mypy`, `pytest` (232 tests passing), `npx tsc --noEmit`, and `npm run build`.
 - **Manual UI Verification (Gap 6):** Verified all 8 manual UI workflows including live seeding of Home Appliances store data.
@@ -105,4 +105,4 @@ inventory.report.view
 - `npx tsc --noEmit`: 0 type errors.
 - `npm run build`: Success.
 
-**Inventory V1 — all gaps closed, ready to freeze.**
+**Inventory V1 -all gaps closed, ready to freeze.**

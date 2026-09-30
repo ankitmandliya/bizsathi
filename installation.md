@@ -1,4 +1,4 @@
-# BizSathi — Project Structure & Architecture Setup
+# BizSathi -Project Structure & Architecture Setup
 
 You are working on **BizSathi**, a modern multi-tenant SaaS platform for small and medium-sized businesses.
 
@@ -321,7 +321,7 @@ Tenant context must be derived from the authenticated user/session.
 
 Every tenant-owned database query must enforce tenant isolation at the service/repository layer.
 
-**RLS timing:** Do NOT enable PostgreSQL Row Level Security in this step. Build tenant scoping into the repository layer first (every query explicitly filtered by `tenant_id` from the authenticated session). Design tables and migrations so RLS policies can be added as a defense-in-depth layer in a later step once core models exist — leave this noted in `docs/multi-tenancy.md` as a planned follow-up, not done now.
+**RLS timing:** Do NOT enable PostgreSQL Row Level Security in this step. Build tenant scoping into the repository layer first (every query explicitly filtered by `tenant_id` from the authenticated session). Design tables and migrations so RLS policies can be added as a defense-in-depth layer in a later step once core models exist -leave this noted in `docs/multi-tenancy.md` as a planned follow-up, not done now.
 
 ---
 
@@ -817,7 +817,7 @@ This phase is complete only when:
 
 ---
 
-# 22. VERY IMPORTANT — Scope Control
+# 22. VERY IMPORTANT -Scope Control
 
 This is a foundation/setup task.
 

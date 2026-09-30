@@ -1,4 +1,4 @@
-"""HRM Module — Full API routes for /api/v1/hrm/"""
+"""HRM Module -Full API routes for /api/v1/hrm/"""
 
 from datetime import date
 from typing import Annotated

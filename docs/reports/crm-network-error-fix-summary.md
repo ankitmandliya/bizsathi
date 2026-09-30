@@ -1,4 +1,4 @@
-# BizSathi Fix Report — Leads Page "Network Error" & Error Handling
+# BizSathi Fix Report -Leads Page "Network Error" & Error Handling
 
 **Fix Status**: RESOLVED & VERIFIED  
 **Date**: September 17, 2026  

@@ -61,4 +61,4 @@ Phase 1 CRM Freeze and Hardening pass is complete. All verification, tenant secu
 
 ## 4. Phase 1 Official Sign-off
 
-**CRM is frozen — Phase 2 (Sales & Invoicing) can begin.**
+**CRM is frozen -Phase 2 (Sales & Invoicing) can begin.**

@@ -167,7 +167,7 @@ export function DealFormModal({
 
         <div style={twoCol}>
           <Select label="Linked Lead" icon={<User size={14} />} {...register('lead_id')}>
-            <option value="">— None / Select Lead —</option>
+            <option value="">-None / Select Lead —</option>
             {leads.map((ld) => (
               <option key={ld.id} value={ld.id}>
                 {ld.name} {ld.company ? `(${ld.company})` : ''}

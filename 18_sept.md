@@ -1,4 +1,4 @@
-# BizSathi Panel — Developed Features & Options Summary (18 Sept 2026)
+# BizSathi Panel -Developed Features & Options Summary (18 Sept 2026)
 
 **Document Purpose:** Complete technical reference and user guide documenting all developed panel features, UI options, modal workflows, theme architecture, backend APIs, and responsive components for BizSathi.
 
@@ -6,7 +6,7 @@
 
 ## 1. Global Navigation & Panel Layout (`DashboardLayout.tsx`)
 
-- **Brand Header & Identity:** "BizSathi — Your business, made simple." displaying active business account ("Ramesh Traders · Owner").
+- **Brand Header & Identity:** "BizSathi -Your business, made simple." displaying active business account ("Ramesh Traders · Owner").
 - **Responsive Off-Screen Navigation Drawer (Mobile & Tablet < 992px):**
   - Topbar hamburger menu button (`.mobile-menu-btn`).
   - Smooth slide-in sidebar drawer (`.sidebar.open`) with dark backdrop overlay.
@@ -160,27 +160,27 @@
 ## 7. Backend REST API Endpoints (`backend/app/api/v1/`)
 
 ### 7.1 CRM Endpoints (`/api/v1/crm`)
-- `GET /api/v1/crm/leads` — List leads (supports limit, search, stage_id).
-- `POST /api/v1/crm/leads` — Create lead.
-- `GET /api/v1/crm/leads/{id}` — Get lead by ID.
-- `PUT /api/v1/crm/leads/{id}` — Update lead details.
-- `DELETE /api/v1/crm/leads/{id}` — Delete lead.
-- `GET /api/v1/crm/customers` — List customers.
-- `POST /api/v1/crm/customers` — Create customer.
-- `GET /api/v1/crm/customers/{id}` — Get customer details.
-- `PUT /api/v1/crm/customers/{id}` — Update customer.
-- `GET /api/v1/crm/pipeline-stages` — Get default Kanban pipeline stages.
-- `GET /api/v1/crm/activities` & `POST /api/v1/crm/activities` — CRM activity logging.
+- `GET /api/v1/crm/leads` -List leads (supports limit, search, stage_id).
+- `POST /api/v1/crm/leads` -Create lead.
+- `GET /api/v1/crm/leads/{id}` -Get lead by ID.
+- `PUT /api/v1/crm/leads/{id}` -Update lead details.
+- `DELETE /api/v1/crm/leads/{id}` -Delete lead.
+- `GET /api/v1/crm/customers` -List customers.
+- `POST /api/v1/crm/customers` -Create customer.
+- `GET /api/v1/crm/customers/{id}` -Get customer details.
+- `PUT /api/v1/crm/customers/{id}` -Update customer.
+- `GET /api/v1/crm/pipeline-stages` -Get default Kanban pipeline stages.
+- `GET /api/v1/crm/activities` & `POST /api/v1/crm/activities` -CRM activity logging.
 
 ### 7.2 Sales Endpoints (`/api/v1/sales`)
-- `GET /api/v1/sales/quotations` — List quotations.
-- `POST /api/v1/sales/quotations` — Create quotation with line items.
-- `GET /api/v1/sales/quotations/{id}` — Get quotation details.
-- `GET /api/v1/sales/invoices` — List tax invoices.
-- `POST /api/v1/sales/invoices` — Create invoice with sequential tenant numbering (`INV-2026-0001`).
-- `GET /api/v1/sales/invoices/{id}` — Get invoice details.
-- `POST /api/v1/sales/invoices/{id}/payments` — Record payment against invoice.
-- `GET /api/v1/sales/customers/{id}/statement` — Generate customer financial statement.
+- `GET /api/v1/sales/quotations` -List quotations.
+- `POST /api/v1/sales/quotations` -Create quotation with line items.
+- `GET /api/v1/sales/quotations/{id}` -Get quotation details.
+- `GET /api/v1/sales/invoices` -List tax invoices.
+- `POST /api/v1/sales/invoices` -Create invoice with sequential tenant numbering (`INV-2026-0001`).
+- `GET /api/v1/sales/invoices/{id}` -Get invoice details.
+- `POST /api/v1/sales/invoices/{id}/payments` -Record payment against invoice.
+- `GET /api/v1/sales/customers/{id}/statement` -Generate customer financial statement.
 
 ---
 

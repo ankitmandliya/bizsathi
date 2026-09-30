@@ -1,4 +1,4 @@
-"""HRM Module — Pydantic schemas for all request/response types."""
+"""HRM Module -Pydantic schemas for all request/response types."""
 
 from datetime import date, datetime, time
 from uuid import UUID
@@ -362,7 +362,7 @@ class SalaryAdvanceCreate(BaseModel):
 
 
 class SalaryAdvanceWarning(BaseModel):
-    """Returned when the advance would make net_payable negative — does not block."""
+    """Returned when the advance would make net_payable negative -does not block."""
 
     would_be_negative: bool
     gross_salary: float

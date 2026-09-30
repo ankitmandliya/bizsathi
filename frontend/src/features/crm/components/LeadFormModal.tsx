@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Briefcase, Globe, IndianRupee, Mail, MessageCircle, Phone, Tag, User, Sparkles, FileText } from 'lucide-react';
+import { Building2, Briefcase, Globe, IndianRupee, Mail, MessageCircle, Phone, Tag, User, Sparkles, FileText, UserPlus } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
@@ -113,100 +113,115 @@ export function LeadFormModal({
       <form
         id="lead-form"
         onSubmit={handleSubmit(handleFormSubmit)}
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '65vh', overflowY: 'auto', paddingRight: '4px' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
       >
-        <Input
-          label="Lead Name"
-          icon={<User size={14} />}
-          required
-          placeholder="e.g. John Doe / Acme Corp"
-          {...register('name')}
-          error={errors.name?.message}
-        />
+        {/* Section 1: Contact & Profile Details */}
+        <div className="form-section-group">
+          <div className="form-section-title">
+            <UserPlus size={14} /> Lead Profile & Contact Info
+          </div>
 
-        <div className="form-row-2col">
-          <Input
-            label="Company"
-            icon={<Building2 size={14} />}
-            placeholder="Company name"
-            {...register('company')}
-            error={errors.company?.message}
-          />
-          <Input
-            label="Job Title"
-            icon={<Briefcase size={14} />}
-            placeholder="e.g. Procurement Manager"
-            {...register('job_title')}
-            error={errors.job_title?.message}
-          />
+          <div className="form-row-2col">
+            <Input
+              label="Lead Name"
+              icon={<User size={14} />}
+              required
+              placeholder="e.g. John Doe / Acme Corp"
+              {...register('name')}
+              error={errors.name?.message}
+            />
+            <Input
+              label="Company Name"
+              icon={<Building2 size={14} />}
+              placeholder="e.g. Acme Enterprises"
+              {...register('company')}
+              error={errors.company?.message}
+            />
+          </div>
+
+          <div className="form-row-2col">
+            <Input
+              label="Job Title"
+              icon={<Briefcase size={14} />}
+              placeholder="e.g. Procurement Manager"
+              {...register('job_title')}
+              error={errors.job_title?.message}
+            />
+            <Input
+              label="Email Address"
+              icon={<Mail size={14} />}
+              type="email"
+              placeholder="john@example.com"
+              {...register('email')}
+              error={errors.email?.message}
+            />
+          </div>
+
+          <div className="form-row-2col">
+            <Input
+              label="Phone Number"
+              icon={<Phone size={14} />}
+              placeholder="+91 98765 43210"
+              {...register('phone')}
+              error={errors.phone?.message}
+            />
+            <Input
+              label="WhatsApp Number"
+              icon={<MessageCircle size={14} />}
+              placeholder="+91 98765 43210"
+              {...register('whatsapp')}
+              error={errors.whatsapp?.message}
+            />
+          </div>
         </div>
 
-        <div className="form-row-2col">
-          <Input
-            label="Email Address"
-            icon={<Mail size={14} />}
-            type="email"
-            placeholder="john@example.com"
-            {...register('email')}
-            error={errors.email?.message}
-          />
-          <Input
-            label="Phone Number"
-            icon={<Phone size={14} />}
-            placeholder="+91 98765 43210"
-            {...register('phone')}
-            error={errors.phone?.message}
-          />
+        {/* Section 2: Pipeline Valuation & Origin */}
+        <div className="form-section-group">
+          <div className="form-section-title">
+            <Sparkles size={14} /> Pipeline & Valuation
+          </div>
+
+          <div className="form-row-2col">
+            <Input
+              label="Estimated Value (₹)"
+              icon={<IndianRupee size={14} />}
+              type="number"
+              placeholder="50000"
+              {...register('estimated_value')}
+              error={errors.estimated_value?.message}
+            />
+            <Select label="Lead Source" icon={<Globe size={14} />} {...register('source')}>
+              <option value="Website">Website</option>
+              <option value="Referral">Referral</option>
+              <option value="Cold Call">Cold Call</option>
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="Campaign">Campaign</option>
+              <option value="Other">Other</option>
+            </Select>
+          </div>
+
+          <div className="form-row-2col">
+            <Select label="Pipeline Stage" icon={<Sparkles size={14} />} {...register('status')}>
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Qualified">Qualified</option>
+              <option value="Proposal">Proposal Sent</option>
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+            </Select>
+            <Select label="Priority" icon={<Tag size={14} />} {...register('priority')}>
+              <option value="Low">Low Priority</option>
+              <option value="Medium">Medium Priority</option>
+              <option value="High">High Priority</option>
+            </Select>
+          </div>
         </div>
 
-        <div className="form-row-2col">
-          <Input
-            label="WhatsApp Number"
-            icon={<MessageCircle size={14} />}
-            placeholder="+91 98765 43210"
-            {...register('whatsapp')}
-            error={errors.whatsapp?.message}
-          />
-          <Input
-            label="Estimated Value (₹)"
-            icon={<IndianRupee size={14} />}
-            type="number"
-            placeholder="50000"
-            {...register('estimated_value')}
-            error={errors.estimated_value?.message}
-          />
-        </div>
-
-        <div className="form-row-3col">
-          <Select label="Lead Source" icon={<Globe size={14} />} {...register('source')}>
-            <option value="Website">Website</option>
-            <option value="Referral">Referral</option>
-            <option value="Cold Call">Cold Call</option>
-            <option value="LinkedIn">LinkedIn</option>
-            <option value="Campaign">Campaign</option>
-            <option value="Other">Other</option>
-          </Select>
-
-          <Select label="Pipeline Status" icon={<Sparkles size={14} />} {...register('status')}>
-            <option value="New">New</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Qualified">Qualified</option>
-            <option value="Proposal">Proposal Sent</option>
-            <option value="Won">Won</option>
-            <option value="Lost">Lost</option>
-          </Select>
-
-          <Select label="Priority" icon={<Tag size={14} />} {...register('priority')}>
-            <option value="Low">Low Priority</option>
-            <option value="Medium">Medium Priority</option>
-            <option value="High">High Priority</option>
-          </Select>
-        </div>
-
+        {/* Section 3: Notes & Specific Requirements */}
         <div className="form-field">
           <label className="form-label">
             <FileText size={14} style={{ color: 'var(--muted)', marginRight: '4px' }} />
-            Lead Notes & Details
+            Lead Notes & Specific Inquiry Details
           </label>
           <textarea
             {...register('notes')}
@@ -219,4 +234,5 @@ export function LeadFormModal({
     </Modal>
   );
 }
+
 

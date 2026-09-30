@@ -1,26 +1,26 @@
-"""Comprehensive HRMS Test Suite — All Possible Scenarios.
+"""Comprehensive HRMS Test Suite -All Possible Scenarios.
 
 Testing Expert Coverage:
-1.  WorkSchedule — create, update (effective-dating), default seeding, payday field
-2.  Holidays — CRUD, working-day check exclusion
-3.  Departments & Designations — CRUD, 404 paths
-4.  Employees — CRUD, soft-delete, status, pagination, search, cross-tenant isolation
-5.  SalaryStructure — effective-dating, multiple versions, no-salary employee in payroll
-6.  Attendance — check-in (on-time, late, holiday/weekend rejection, duplicate),
+1.  WorkSchedule -create, update (effective-dating), default seeding, payday field
+2.  Holidays -CRUD, working-day check exclusion
+3.  Departments & Designations -CRUD, 404 paths
+4.  Employees -CRUD, soft-delete, status, pagination, search, cross-tenant isolation
+5.  SalaryStructure -effective-dating, multiple versions, no-salary employee in payroll
+6.  Attendance -check-in (on-time, late, holiday/weekend rejection, duplicate),
                   check-out (present, late, half-day, already-checked-out, no-check-in),
                   manual correction, status boundaries
-7.  EOD Evaluation — absent marking, leave marking, non-working-day skip
-8.  Leave Types — seeding, create, list
-9.  Leave Requests — create, approve, reject, invalid-date, end<start rejection,
+7.  EOD Evaluation -absent marking, leave marking, non-working-day skip
+8.  Leave Types -seeding, create, list
+9.  Leave Requests -create, approve, reject, invalid-date, end<start rejection,
                      cancel-after-approve blocked, already-approved block
-10. Leave Balance — zero taken, partial, exceeding annual, multi-type
-11. Salary Advance — warning (no warning, warning-rejected, warning-confirmed),
+10. Leave Balance -zero taken, partial, exceeding annual, multi-type
+11. Salary Advance -warning (no warning, warning-rejected, warning-confirmed),
                      negative-net allowed, advance-on-adjusted-payroll blocked
-12. Payroll — run, idempotency, duplicate blocked on PROCESSED,
+12. Payroll -run, idempotency, duplicate blocked on PROCESSED,
               gross calc, absence deduction, advance deduction, negative net,
               payslip PDF generation, snapshot immutability
-13. Security — cross-tenant employee/attendance/leave/advance/payroll 404
-14. Edge cases — leave end_date < start_date, advance on no-salary employee,
+13. Security -cross-tenant employee/attendance/leave/advance/payroll 404
+14. Edge cases -leave end_date < start_date, advance on no-salary employee,
                  checkout before checkin, double checkout, payroll period format
 """
 
@@ -499,7 +499,7 @@ async def test_cross_tenant_employee_isolation():
     emp_tenant_a = make_employee(tenant_a)
 
     service.emp_repo = AsyncMock()
-    # Simulate repo filtering by tenant_id — returns None for tenant_b
+    # Simulate repo filtering by tenant_id -returns None for tenant_b
     service.emp_repo.get_by_id = AsyncMock(return_value=None)
 
     with pytest.raises(HTTPException) as exc:
@@ -508,7 +508,7 @@ async def test_cross_tenant_employee_isolation():
 
 
 # ---------------------------------------------------------------------------
-# 5. Salary Structure — effective-dating
+# 5. Salary Structure -effective-dating
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
@@ -541,7 +541,7 @@ async def test_set_salary_structure_creates_new():
 
 
 # ---------------------------------------------------------------------------
-# 6. Attendance — Check-in / Check-out
+# 6. Attendance -Check-in / Check-out
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
@@ -596,7 +596,7 @@ async def test_check_in_late():
     service.holiday_repo = AsyncMock()
     service.holiday_repo.is_holiday = AsyncMock(return_value=False)
 
-    # Monday Sep 14, 2026 — 09:50
+    # Monday Sep 14, 2026 -09:50
     check_in_time = datetime(2026, 9, 14, 9, 50, tzinfo=UTC)
     att = await service.check_in(
         tenant_id,
@@ -887,7 +887,7 @@ async def test_manual_attendance_correction():
 
     update_data = AttendanceUpdate(
         status="PRESENT",
-        remarks="Corrected — system error",
+        remarks="Corrected -system error",
     )
     result = await service.manual_correct_attendance(tenant_id, att.id, update_data, user_id)
     assert result.status == "PRESENT"
@@ -2073,7 +2073,7 @@ def test_payslip_pdf_html_generation():
         other_deductions=2000.0,
         net_payable=43000.0,
     )
-    # PDF generation reads created_at — set it explicitly
+    # PDF generation reads created_at -set it explicitly
     payslip.created_at = datetime(2026, 9, 30, 12, 0, 0, tzinfo=UTC)
 
     emp = Employee(
@@ -2360,7 +2360,7 @@ async def test_leave_balance_rejected_leaves_not_counted():
 
 @pytest.mark.asyncio
 async def test_work_schedule_update_creates_new_row_not_edit():
-    """Setting a new work schedule must not edit the old one — creates a new row."""
+    """Setting a new work schedule must not edit the old one -creates a new row."""
     db = build_mock_db()
     service = HRMService(db)
     tenant_id = uuid4()

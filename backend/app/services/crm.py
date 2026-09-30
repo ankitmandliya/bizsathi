@@ -423,7 +423,7 @@ class CRMService:
                     deal.customer_id = converted_cust.id
             elif new_stage.is_lost:
                 deal.actual_closing_date = datetime.now(UTC)
-                # Historical conversion remains intact — do NOT delete or unlink customer!
+                # Historical conversion remains intact -do NOT delete or unlink customer!
 
             await log_audit_event(
                 self.db,

@@ -895,86 +895,128 @@ export const InventoryPage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
           {/* Low Stock Alerts Table */}
           <div style={{ background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--line)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text)' }}>
-                  <AlertTriangle size={18} color="#d97706" /> Stock Reorder Alerts
-                </h3>
-                <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0' }}>
-                  Products requiring inventory replenishment
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ fontSize: '17px', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text)' }}>
+                    <AlertTriangle size={19} color="#d97706" /> Stock Reorder Alerts
+                  </h3>
+                  {displayLowStockProducts.length > 0 && (
+                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
+                      {displayLowStockProducts.length} items
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: '12.5px', color: 'var(--muted)', margin: '3px 0 0' }}>
+                  Products below minimum inventory threshold requiring replenishment
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveTab('products')}
-                style={{ background: 'none', border: 'none', color: '#4f46e5', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 View all catalog <ChevronRight size={14} />
               </button>
             </div>
 
             {!displayLowStockProducts || displayLowStockProducts.length === 0 ? (
-              <div style={{ padding: '32px', textAlign: 'center', border: '1px dashed var(--line)', borderRadius: '12px' }}>
-                <CheckCircle2 size={32} color="#10b981" style={{ margin: '0 auto 8px' }} />
-                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Stock Levels Healthy</p>
-                <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0' }}>No products are currently below minimum stock threshold.</p>
+              <div style={{ padding: '36px', textAlign: 'center', border: '1px dashed var(--line)', borderRadius: '14px', background: 'var(--panel-alt)' }}>
+                <CheckCircle2 size={36} color="#10b981" style={{ margin: '0 auto 10px' }} />
+                <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Stock Levels Healthy</p>
+                <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '4px 0 0' }}>All catalog items are currently above minimum stock thresholds.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
+              <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--line)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid var(--line)', color: 'var(--muted)', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '10px 12px' }}>Product Name</th>
-                      <th style={{ padding: '10px 12px' }}>SKU</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'right' }}>Available</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'right' }}>Min Level</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>Status</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'right' }}>Action</th>
+                    <tr style={{ background: 'var(--panel-alt)', borderBottom: '1px solid var(--line)', color: 'var(--muted)', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      <th style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>Product Name</th>
+                      <th style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>SKU</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>Available</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>Min Level</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>Status</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {displayLowStockProducts.map((p) => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid var(--line)' }}>
-                        <td style={{ padding: '12px', fontWeight: 600, color: 'var(--text)' }}>{p.name}</td>
-                        <td style={{ padding: '12px', fontFamily: 'monospace', color: 'var(--muted)' }}>{p.sku}</td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--text)' }}>
-                          {p.current_stock} {p.unit_name || ''}
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: 'var(--muted)' }}>{p.minimum_stock}</td>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <span
-                            style={{
-                              padding: '3px 8px',
-                              borderRadius: '99px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              background: p.stock_status === 'Out of Stock' ? '#fee2e2' : '#fef3c7',
-                              color: p.stock_status === 'Out of Stock' ? '#b91c1c' : '#b45309',
-                            }}
-                          >
-                            {p.stock_status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            onClick={() => openStockModal('IN', p as any)}
-                            style={{
-                              padding: '5px 12px',
-                              borderRadius: '6px',
-                              background: '#ecfdf5',
-                              border: '1px solid #a7f3d0',
-                              color: '#047857',
-                              fontWeight: 700,
-                              fontSize: '11px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            + Reorder
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {displayLowStockProducts.map((p) => {
+                      const isOut = p.stock_status === 'Out of Stock' || Number(p.current_stock) === 0;
+                      return (
+                        <tr key={p.id} className="table-row-hover" style={{ borderBottom: '1px solid var(--line)', transition: 'background 0.15s ease' }}>
+                          <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span>{p.name}</span>
+                              {p.category_id && (
+                                <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 500, marginTop: '2px' }}>
+                                  {categories.find(c => c.id === p.category_id)?.name || ''}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, padding: '3px 7px', borderRadius: '6px', background: 'var(--panel-alt)', border: '1px solid var(--line)', color: 'var(--text)' }}>
+                              {p.sku}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontWeight: 800, fontSize: '14px', color: isOut ? '#dc2626' : '#d97706' }}>
+                              {Number(p.current_stock || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                            <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, marginLeft: '4px' }}>
+                              {p.unit_name || p.unit?.name || 'Pcs'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            {Number(p.minimum_stock || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '4px 10px',
+                                borderRadius: '99px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap',
+                                background: isOut ? '#fee2e2' : '#fef3c7',
+                                color: isOut ? '#b91c1c' : '#b45309',
+                                border: isOut ? '1px solid #fca5a5' : '1px solid #fde68a',
+                              }}
+                            >
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isOut ? '#ef4444' : '#f59e0b' }} />
+                              {isOut ? 'Out of Stock' : 'Low Stock'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => openStockModal('IN', p as any)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 14px',
+                                borderRadius: '8px',
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                color: '#ffffff',
+                                fontWeight: 700,
+                                fontSize: '12px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+                                transition: 'all 0.15s ease',
+                              }}
+                              className="btn-reorder-hover"
+                            >
+                              <Plus size={14} /> Reorder
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

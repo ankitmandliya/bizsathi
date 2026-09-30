@@ -1,4 +1,4 @@
-"""HRM Module — SQLAlchemy models.
+"""HRM Module -SQLAlchemy models.
 
 Scope: Department, Designation, Employee, SalaryStructure, WorkSchedule,
 Holiday, LeaveType, LeaveRequest, Attendance, SalaryAdvance, Payroll, Payslip.
@@ -121,7 +121,7 @@ class Employee(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
     emergency_contact_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     emergency_contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
-    # Storage only — no compliance logic
+    # Storage only -no compliance logic
     pf_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
     esi_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
@@ -132,7 +132,7 @@ class Employee(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
 
 
 class SalaryStructure(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
-    """Effective-dated salary structure rows — never edit history, create new rows."""
+    """Effective-dated salary structure rows -never edit history, create new rows."""
 
     __tablename__ = "salary_structures"
     __table_args__ = (

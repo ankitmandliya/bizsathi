@@ -127,9 +127,9 @@ async def _run_verification(db: AsyncSession):
     await db.flush()
 
     # -------------------------------------------------------------------------
-    # STEP 1 — Create 4 Employees & Salary Structures
+    # STEP 1 -Create 4 Employees & Salary Structures
     # -------------------------------------------------------------------------
-    # 1. Rahul Sharma — Sales, Full-time, login access ON
+    # 1. Rahul Sharma -Sales, Full-time, login access ON
     rahul = await hrm_service.create_employee(
         tenant.id,
         EmployeeCreate(
@@ -149,7 +149,7 @@ async def _run_verification(db: AsyncSession):
     )
     assert rahul.user_id is not None
 
-    # 2. Priya Verma — Accounts, Full-time, login access ON
+    # 2. Priya Verma -Accounts, Full-time, login access ON
     priya = await hrm_service.create_employee(
         tenant.id,
         EmployeeCreate(
@@ -169,7 +169,7 @@ async def _run_verification(db: AsyncSession):
     )
     assert priya.user_id is not None
 
-    # 3. Amit Singh — Operations, Full-time, login access OFF
+    # 3. Amit Singh -Operations, Full-time, login access OFF
     amit = await hrm_service.create_employee(
         tenant.id,
         EmployeeCreate(
@@ -187,7 +187,7 @@ async def _run_verification(db: AsyncSession):
     )
     assert amit.user_id is None
 
-    # 4. Neha Joshi — Sales, Part-time, login access ON
+    # 4. Neha Joshi -Sales, Part-time, login access ON
     neha = await hrm_service.create_employee(
         tenant.id,
         EmployeeCreate(
@@ -257,7 +257,7 @@ async def _run_verification(db: AsyncSession):
     )
 
     # -------------------------------------------------------------------------
-    # STEP 2 — Attendance for Previous Full Calendar Month (August 2026)
+    # STEP 2 -Attendance for Previous Full Calendar Month (August 2026)
     # -------------------------------------------------------------------------
     print("\n--- STARTING STEP 2 ---", flush=True)
     year, month = 2026, 8
@@ -390,7 +390,7 @@ async def _run_verification(db: AsyncSession):
     assert len(weekend_atts.scalars().all()) == 0
 
     # -------------------------------------------------------------------------
-    # STEP 3 — Salary Advance & Warning Flow
+    # STEP 3 -Salary Advance & Warning Flow
     # -------------------------------------------------------------------------
     print("\n--- STARTING STEP 3 ---")
     adv_rahul, warning1 = await hrm_service.create_salary_advance(
@@ -425,7 +425,7 @@ async def _run_verification(db: AsyncSession):
     assert adv_excess is None  # Not saved without confirm=True
 
     # -------------------------------------------------------------------------
-    # STEP 4 — Run Payroll for August 2026
+    # STEP 4 -Run Payroll for August 2026
     # -------------------------------------------------------------------------
     print("\n--- STARTING STEP 4 ---", flush=True)
     payroll = await hrm_service.run_payroll(tenant.id, "2026-08", admin_user.id)
@@ -474,7 +474,7 @@ async def _run_verification(db: AsyncSession):
     assert float(p_neha.net_payable) == round(15000.0 - expected_neha_lop, 2)
 
     # -------------------------------------------------------------------------
-    # STEP 5 — Payslip HTML / PDF Verification
+    # STEP 5 -Payslip HTML / PDF Verification
     # -------------------------------------------------------------------------
     print("\n--- STARTING STEP 5 ---", flush=True)
     for emp_obj, ps in [(rahul, p_rahul), (priya, p_priya), (amit, p_amit), (neha, p_neha)]:
@@ -491,7 +491,7 @@ async def _run_verification(db: AsyncSession):
             raise e
 
     # -------------------------------------------------------------------------
-    # STEP 6 — Employee Self-Service Check & Tenant Isolation
+    # STEP 6 -Employee Self-Service Check & Tenant Isolation
     # -------------------------------------------------------------------------
     print("\n--- STARTING STEP 6 ---", flush=True)
     try:

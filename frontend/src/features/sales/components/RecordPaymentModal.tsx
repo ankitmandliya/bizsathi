@@ -71,7 +71,7 @@ export function RecordPaymentModal({ isOpen, onClose, invoice, onSuccess }: Reco
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Record Payment — ${invoice.invoice_number}`} size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Record Payment -${invoice.invoice_number}`} size="md">
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {error && <div className="alert alert-error">{error}</div>}
 

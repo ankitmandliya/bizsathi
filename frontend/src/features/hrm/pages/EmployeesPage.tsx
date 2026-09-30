@@ -532,7 +532,7 @@ export function EmployeesPage() {
             </div>
             Employees
           </h1>
-          <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Manage your team — add, edit, set salaries, and configure login access</p>
+          <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Manage your team -add, edit, set salaries, and configure login access</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <AuditLogButton entityTypes={['employee']} title="Employees Audit Log" />

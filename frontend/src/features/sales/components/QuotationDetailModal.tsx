@@ -98,7 +98,7 @@ export function QuotationDetailModal({ isOpen, onClose, quotationId, onSuccess }
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={quotation ? `Quotation — ${quotation.quotation_number}` : 'Quotation Details'}
+      title={quotation ? `Quotation -${quotation.quotation_number}` : 'Quotation Details'}
       size="lg"
     >
       {loading ? (

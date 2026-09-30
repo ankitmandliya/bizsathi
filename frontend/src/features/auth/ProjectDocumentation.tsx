@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 /* ============================================================
-   DESIGN TOKENS (inline — works with project CSS variables)
+   DESIGN TOKENS (inline -works with project CSS variables)
    ============================================================ */
 
 type TabKey =
@@ -372,7 +372,7 @@ export function ProjectDocumentation({ standalone = false }: { standalone?: bool
             Project Documentation
           </h1>
           <p style={{ fontSize: '13.5px', color: 'var(--muted-2)' }}>
-            Complete setup guide for BizSathi <span style={{ fontFamily: 'monospace', background: 'var(--panel-alt)', padding: '1px 6px', borderRadius: '4px', fontSize: '12px' }}>v0.1.0</span> — monorepo architecture with FastAPI + React + PostgreSQL.
+            Complete setup guide for BizSathi <span style={{ fontFamily: 'monospace', background: 'var(--panel-alt)', padding: '1px 6px', borderRadius: '4px', fontSize: '12px' }}>v0.1.0</span> -monorepo architecture with FastAPI + React + PostgreSQL.
           </p>
         </div>
       )}
@@ -508,7 +508,7 @@ export function ProjectDocumentation({ standalone = false }: { standalone?: bool
               />
               <StepCard
                 step="3"
-                label="Docker Full Stack (Alternative — runs everything)"
+                label="Docker Full Stack (Alternative -runs everything)"
                 accentColor="#6366f1"
                 code={`docker compose up --build`}
               />
@@ -600,7 +600,7 @@ export function ProjectDocumentation({ standalone = false }: { standalone?: bool
 
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-                  Backend — <code style={{ fontFamily: 'monospace', fontSize: '11px' }}>backend/.env</code>
+                  Backend -<code style={{ fontFamily: 'monospace', fontSize: '11px' }}>backend/.env</code>
                 </p>
                 <CodeBlock
                   language="dotenv"
@@ -613,7 +613,7 @@ DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/bizsathi`}
 
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-                  Frontend — <code style={{ fontFamily: 'monospace', fontSize: '11px' }}>frontend/.env</code>
+                  Frontend -<code style={{ fontFamily: 'monospace', fontSize: '11px' }}>frontend/.env</code>
                 </p>
                 <CodeBlock language="dotenv" code={`VITE_API_BASE_URL=http://localhost:8000`} />
               </div>
@@ -780,13 +780,13 @@ DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/bizsathi`}
               />
               <IssueCard
                 type="error"
-                issue="npm install fails — peer dependency conflicts"
+                issue="npm install fails -peer dependency conflicts"
                 fix="Use the legacy peer deps flag:"
                 code={`cd frontend\nnpm install --legacy-peer-deps`}
               />
               <IssueCard
                 type="warning"
-                issue="Alembic migration error — table already exists"
+                issue="Alembic migration error -table already exists"
                 fix="Stamp the current revision and retry:"
                 code={`cd backend\n..\\.venv\\Scripts\\alembic.exe stamp head\n..\\.venv\\Scripts\\alembic.exe upgrade head`}
               />

@@ -11,12 +11,12 @@ BizSathi is a multi-tenant SaaS foundation for small and medium-sized businesses
 
 ## Monorepo layout
 
-- `frontend/` — React application shell and route foundation
-- `backend/` — FastAPI backend and API foundation
-- `workers/` — async task workers
-- `infrastructure/` — AWS and deployment placeholders
-- `docs/` — architecture and operational documentation
-- `scripts/` — operational scripts
+- `frontend/` -React application shell and route foundation
+- `backend/` -FastAPI backend and API foundation
+- `workers/` -async task workers
+- `infrastructure/` -AWS and deployment placeholders
+- `docs/` -architecture and operational documentation
+- `scripts/` -operational scripts
 
 ## Quick start
 

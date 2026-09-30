@@ -59,7 +59,7 @@ export default function DocsPage() {
               BizSathi Project Guide
             </h1>
             <p style={{ fontSize: '13.5px', color: 'var(--muted-2)', marginTop: '6px' }}>
-              Complete setup guide for the <code style={{ fontFamily: 'monospace', background: 'var(--panel-alt)', padding: '1px 6px', borderRadius: '4px', fontSize: '12px' }}>v0.1.0</code> monorepo — FastAPI + React + PostgreSQL.
+              Complete setup guide for the <code style={{ fontFamily: 'monospace', background: 'var(--panel-alt)', padding: '1px 6px', borderRadius: '4px', fontSize: '12px' }}>v0.1.0</code> monorepo -FastAPI + React + PostgreSQL.
             </p>
           </div>
         </div>

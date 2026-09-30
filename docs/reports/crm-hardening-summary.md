@@ -1,4 +1,4 @@
-# BizSathi CRM Hardening — Completion Report
+# BizSathi CRM Hardening -Completion Report
 
 **Pass Status**: PRODUCTION HARDENED & VERIFIED  
 **Date**: September 17, 2026  
@@ -12,12 +12,12 @@ All P0 security, data integrity, and performance hardening tasks specified in `m
 
 ## 2. Hardening Fixes Implemented
 
-### Fix 1 — Lead Conversion Idempotency & Customer Preservation
+### Fix 1 -Lead Conversion Idempotency & Customer Preservation
 - Added `converted_at` (nullable `DateTime(timezone=True)`) and `converted_customer_id` (nullable FK to `customers.id`) to `Lead` model in `backend/app/models/crm.py`.
 - **Idempotency Guarantee**: If `convert_lead_to_customer` or the Deal-Won trigger is called multiple times on the same lead or deal, it returns the existing `Customer` without duplicating records.
 - **Historical Conversion Preservation**: Moving a deal from `Won` to `Lost` or a non-won stage preserves the `Customer` record and linked IDs (`converted_customer_id` / `customer_id`).
 
-### Fix 2 — Cross-Tenant Security Isolation
+### Fix 2 -Cross-Tenant Security Isolation
 - Added explicit cross-tenant security test cases in `backend/tests/test_crm.py` (simulating User A with Tenant B's `X-Tenant-ID` header):
   - `GET /api/v1/crm/leads/{id}` → `403 Forbidden`
   - `PUT /api/v1/crm/leads/{id}` → `403 Forbidden`
@@ -27,18 +27,18 @@ All P0 security, data integrity, and performance hardening tasks specified in `m
   - `PUT /api/v1/crm/deals/{id}` → `403 Forbidden`
   - `DELETE /api/v1/crm/deals/{id}` → `403 Forbidden`
 
-### Fix 3 — Database Indexes & Migration
+### Fix 3 -Database Indexes & Migration
 - Created Alembic migration `backend/migrations/versions/002_crm_hardening_indexes.py` adding composite indexes:
   - **`leads`**: `(tenant_id, status)`, `(tenant_id, assigned_user_id)`, `(tenant_id, source)`, `(tenant_id, priority)`, `(tenant_id, follow_up_date)`, `(tenant_id, created_at)`.
   - **`deals`**: `(tenant_id, stage_id)`, `(tenant_id, owner_id)`, `(tenant_id, expected_closing_date)`.
   - **`activities`**: `(tenant_id, lead_id)`, `(tenant_id, deal_id)`, `(tenant_id, customer_id)`, `(tenant_id, due_date)`.
 - Verified no global unique constraint exists incorrectly on CRM tables.
 
-### Fix 4 — Activity Parent & Cross-Tenant Link Validation
+### Fix 4 -Activity Parent & Cross-Tenant Link Validation
 - In `CRMService` (`backend/app/services/crm.py`), added validation ensuring an `Activity` must be linked to at least one parent entity (`lead_id`, `deal_id`, or `customer_id`) and that whichever parent entity is set belongs strictly to the activity's `tenant_id`.
 - Added validation on `Deal` creation and update ensuring linked `lead_id` or `customer_id` belongs strictly to `tenant_id`.
 
-### Fix 5 — Edge-Case Test Suite
+### Fix 5 -Edge-Case Test Suite
 - Implemented and passed all targeted edge-case tests in `backend/tests/test_crm.py`:
   - `✓` Duplicate lead conversion prevented
   - `✓` Duplicate customer creation prevented on repeated Deal-Won trigger

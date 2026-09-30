@@ -1,10 +1,10 @@
-# BizSathi — CRM & Sales: Final Verification Sign-off Report
+# BizSathi -CRM & Sales: Final Verification Sign-off Report
 
 **Document Purpose:** Final sign-off report closing all 4 verification gaps for **CRM Freeze** and **Sales & Invoicing**, confirming 100% test suite pass rates, clean migration execution, zero lint/type errors, and manual UI verification checklist.
 
 ---
 
-## 1. Gap 1 Results — RBAC / Permission Test Coverage
+## 1. Gap 1 Results -RBAC / Permission Test Coverage
 
 Added explicit permission test suite in `backend/tests/test_permissions.py` (and enhanced `test_crm.py` and `test_sales.py`) verifying that a user WITHOUT the required permission receives `403 Forbidden`, while a user WITH the permission (tenant owner/admin) receives a successful response for every action-based permission key. Added soft-delete endpoints for quotations (`DELETE /api/v1/sales/quotations/{id}`) and invoices (`DELETE /api/v1/sales/invoices/{id}`) with explicit `sales.quotation.delete` and `sales.invoice.delete` permission enforcement.
 
@@ -89,18 +89,18 @@ tests/test_permissions.py::test_permission_allowed_for_owner[sales.payment.creat
 
 ---
 
-## 2. Gap 2 Results — Fresh PostgreSQL Migration Test
+## 2. Gap 2 Results -Fresh PostgreSQL Migration Test
 
 Executed `python -m alembic upgrade head` against clean PostgreSQL instance. All migration files applied in sequential order with zero errors:
 
-1. `001_initial_schema.py` — Applied foundation schema (users, tenants, tenant_members, roles, permissions, audit_logs).
-2. `002_crm_hardening_indexes.py` — Applied CRM indexes and constraints (`leads`, `deals`, `activities`, `customers`, `pipeline_stages`).
-3. `003_sales_module.py` — Applied Sales & Invoicing tables (`quotations`, `quotation_items`, `invoices`, `invoice_items`, `payments`, `sales_sequences`).
+1. `001_initial_schema.py` -Applied foundation schema (users, tenants, tenant_members, roles, permissions, audit_logs).
+2. `002_crm_hardening_indexes.py` -Applied CRM indexes and constraints (`leads`, `deals`, `activities`, `customers`, `pipeline_stages`).
+3. `003_sales_module.py` -Applied Sales & Invoicing tables (`quotations`, `quotation_items`, `invoices`, `invoice_items`, `payments`, `sales_sequences`).
 4. **Tenant Pipeline Seeding:** Verified that newly initialized tenant automatically seeds default pipeline stages (`New`, `Contacted`, `Qualified`, `Proposal`, `Won`, `Lost`).
 
 ---
 
-## 3. Gap 3 Results — Manual UI Verification Checklist
+## 3. Gap 3 Results -Manual UI Verification Checklist
 
 | Checklist Item | Actual Result | Status |
 | :--- | :--- | :--- |
@@ -114,7 +114,7 @@ Executed `python -m alembic upgrade head` against clean PostgreSQL instance. All
 
 ---
 
-## 4. Gap 4 Results — Complete Lint & Type-Check Results
+## 4. Gap 4 Results -Complete Lint & Type-Check Results
 
 Executed all 4 required linter and type-checking suites across backend and frontend repositories:
 
@@ -132,19 +132,19 @@ Executed all 4 required linter and type-checking suites across backend and front
 Executed full regression suite across all backend pytest suites and frontend vitest suites:
 
 - **Backend Pytest (`python -m pytest`):** **62 / 62 PASSED** (100% pass rate in 8.47s).
-  - `tests/test_auth.py` — 6 passed
-  - `tests/test_crm.py` — 7 passed
-  - `tests/test_health.py` — 3 passed
-  - `tests/test_permissions.py` — 42 passed
-  - `tests/test_sales.py` — 4 passed
+  - `tests/test_auth.py` -6 passed
+  - `tests/test_crm.py` -7 passed
+  - `tests/test_health.py` -3 passed
+  - `tests/test_permissions.py` -42 passed
+  - `tests/test_sales.py` -4 passed
 - **Frontend Vitest (`npm run test -- --run`):** **5 / 5 test files passed, 7 / 7 tests passed** (100% pass rate in 13.50s).
-  - `src/test/error.test.ts` — 3 passed
-  - `src/test/DashboardLayout.test.tsx` — 1 passed
-  - `src/test/Sales.test.tsx` — 1 passed
-  - `src/test/CrmLeads.test.tsx` — 1 passed
-  - `src/test/LoginPage.test.tsx` — 1 passed
+  - `src/test/error.test.ts` -3 passed
+  - `src/test/DashboardLayout.test.tsx` -1 passed
+  - `src/test/Sales.test.tsx` -1 passed
+  - `src/test/CrmLeads.test.tsx` -1 passed
+  - `src/test/LoginPage.test.tsx` -1 passed
 - **Frontend Production Bundle (`npm run build`):** **0 errors** (1839 modules transformed in 38.67s).
 
 ---
 
-CRM and Sales & Invoicing are both fully verified — ready to move to the next module.
+CRM and Sales & Invoicing are both fully verified -ready to move to the next module.

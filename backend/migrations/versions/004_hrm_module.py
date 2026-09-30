@@ -1,4 +1,4 @@
-"""004_hrm_module.py — HRM Module V1
+"""004_hrm_module.py -HRM Module V1
 
 Creates all HRM tables: departments, designations, work_schedules, holidays,
 employees, salary_structures, attendances, leave_types, leave_requests,

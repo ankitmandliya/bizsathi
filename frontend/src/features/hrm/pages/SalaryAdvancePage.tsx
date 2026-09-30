@@ -77,7 +77,7 @@ function AdvanceModal({ isOpen, onClose, onSaved, employees }: {
       };
       const resp = await hrmApi.createSalaryAdvance(payload);
       if (!resp.advance && resp.warning) {
-        // Warning shown — needs confirm
+        // Warning shown -needs confirm
         setWarning(resp.warning);
         setSaving(false);
         return;
@@ -188,7 +188,7 @@ export function SalaryAdvancePage() {
             </div>
             Salary Advances
           </h1>
-          <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Manage advance payments — auto-adjusted during payroll</p>
+          <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Manage advance payments -auto-adjusted during payroll</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <AuditLogButton entityTypes={['salary_advance']} title="Salary Advances Audit Log" />

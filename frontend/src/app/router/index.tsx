@@ -51,6 +51,8 @@ import { VendorsPage } from '../../features/vendors/pages/VendorsPage';
 import { hrmApi } from '../../features/hrm/services/hrmApi';
 
 
+import { ReportsPage } from '../../features/reports';
+
 import { useState, useEffect } from 'react';
 
 function DynamicDashboardPage() {
@@ -124,7 +126,7 @@ export default function AppRouter() {
         <Route path="/inventory" element={<InventoryPage />} />
 
         <Route path="/subscriptions" element={<ModulePlaceholderPage name="Subscriptions" />} />
-        <Route path="/reports" element={<ModulePlaceholderPage name="Reports" />} />
+        <Route path="/reports" element={<ReportsPage />} />
         <Route path="/marketing" element={<MarketingPage />} />
         <Route path="/communication" element={<MarketingPage />} />
         <Route path="/docs" element={<DocsPage />} />

@@ -167,7 +167,7 @@ export function InvoicesListPage() {
             Invoices
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '4px 0 0 0', fontSize: '14px' }}>
-            GST-compliant invoicing — create, send, and track payments.
+            GST-compliant invoicing -create, send, and track payments.
           </p>
         </div>
 

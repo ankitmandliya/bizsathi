@@ -1,8 +1,8 @@
-# BizSathi — Complete Technical & Functional Project Documentation
+# BizSathi -Complete Technical & Functional Project Documentation
 
 > **Document Type:** Production Launch Technical Documentation & Architecture Manual  
 > **Target Audience:** CTO, Technical Lead, System Administrators, Senior Developers  
-> **Project Name:** BizSathi — Multi-Tenant MSME Enterprise Resource & Business Management Platform  
+> **Project Name:** BizSathi -Multi-Tenant MSME Enterprise Resource & Business Management Platform  
 > **Version:** 1.0.0 (Production Release Candidate)  
 > **Date:** September 2026  
 > **Document Status:** Authoritative Source of Truth  

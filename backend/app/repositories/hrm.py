@@ -1,4 +1,4 @@
-"""HRM Module — Repository layer (thin data-access only, no business logic)."""
+"""HRM Module -Repository layer (thin data-access only, no business logic)."""
 
 from collections.abc import Sequence
 from datetime import UTC, date, datetime

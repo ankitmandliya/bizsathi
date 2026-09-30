@@ -1,4 +1,4 @@
-"""HRM Module — Service layer with all business logic.
+"""HRM Module -Service layer with all business logic.
 
 Covers: WorkSchedule, Holiday, Department, Designation, Employee,
 SalaryStructure, Attendance (check-in/out + EOD), Leave, SalaryAdvance, Payroll.
@@ -550,7 +550,7 @@ class HRMService:
         return list(await self.salary_repo.list_for_employee(tenant_id, employee_id))
 
     # -----------------------------------------------------------------------
-    # Attendance — check-in / check-out
+    # Attendance -check-in / check-out
     # -----------------------------------------------------------------------
 
     def _compute_attendance_status(
@@ -601,7 +601,7 @@ class HRMService:
         if existing:
             if existing.check_in_at is not None:
                 raise HTTPException(status_code=400, detail="Already checked in today.")
-            # Row exists (ABSENT/LEAVE from EOD job) — update it
+            # Row exists (ABSENT/LEAVE from EOD job) -update it
             existing.check_in_at = now
             existing.source = "WEB"
             existing.remarks = data.remarks
@@ -732,7 +732,7 @@ class HRMService:
         for emp in active_employees:
             existing = await self.att_repo.get_by_employee_date(tenant_id, emp.id, eval_date)
             if existing:
-                # Row already exists (checked in) — skip
+                # Row already exists (checked in) -skip
                 continue
 
             approved_leave = await self.lr_repo.get_approved_for_date(tenant_id, emp.id, eval_date)
@@ -918,7 +918,7 @@ class HRMService:
                 ),
             )
             if not data.confirm:
-                # Return warning without saving — caller should re-submit with confirm=True
+                # Return warning without saving -caller should re-submit with confirm=True
                 # We create a temporary advance object just to package the warning response
                 # but do NOT persist it. The API route handles this case.
                 return None, warning  # type: ignore[return-value]
@@ -975,7 +975,7 @@ class HRMService:
     # -----------------------------------------------------------------------
 
     async def run_payroll(self, tenant_id: UUID, payroll_period: str, user_id: UUID) -> Payroll:
-        """Generate payroll for a period. Idempotent if already DRAFT — re-run creates fresh."""
+        """Generate payroll for a period. Idempotent if already DRAFT -re-run creates fresh."""
         # Parse period
         try:
             year, month = int(payroll_period[:4]), int(payroll_period[5:7])
@@ -1017,7 +1017,7 @@ class HRMService:
             if not salary:
                 salary = await self.salary_repo.get_current(tenant_id, emp.id)
             if not salary:
-                continue  # No salary structure — skip this employee
+                continue  # No salary structure -skip this employee
 
             gross = float(salary.basic + salary.hra + salary.other_allowances)
 

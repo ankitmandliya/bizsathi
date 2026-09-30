@@ -1,4 +1,4 @@
-"""005_hrm_addendum.py — HRM Addendum migration
+"""005_hrm_addendum.py -HRM Addendum migration
 
 Adds:
 1. user_id column on employees table (with FK to users.id)

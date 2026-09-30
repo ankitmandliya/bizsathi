@@ -252,7 +252,7 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
               <option value="">-- Choose Product --</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.sku}) — Current Stock: {p.current_stock} {p.unit_name || ''}
+                  {p.name} ({p.sku}) -Current Stock: {p.current_stock} {p.unit_name || ''}
                 </option>
               ))}
             </select>

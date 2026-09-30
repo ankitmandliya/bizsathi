@@ -306,7 +306,7 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, 
                 <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '11px', color: 'var(--muted)' }}>
                   {summary.errors.map((err, idx) => (
                     <li key={idx} style={{ marginBottom: '4px' }}>
-                      Row {err.row_number}: {err.product_name || err.sku || 'Item'} — {err.reason}
+                      Row {err.row_number}: {err.product_name || err.sku || 'Item'} -{err.reason}
                     </li>
                   ))}
                 </ul>

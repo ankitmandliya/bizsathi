@@ -54,10 +54,10 @@ Phase 2 Sales & Invoicing module has been successfully implemented for BizSathi.
 
 ## 3. Explicitly Deferred (Not Built, per Scope Control)
 
-- Payment gateway integration (Razorpay/Stripe) — recorded manually.
-- Automated/scheduled email payment reminders — manual "Send Reminder" button used.
+- Payment gateway integration (Razorpay/Stripe) -recorded manually.
+- Automated/scheduled email payment reminders -manual "Send Reminder" button used.
 - Multiple invoice templates / branding configuration.
-- CGST/SGST/IGST split or e-invoicing/GST filing — single GST tax rate captured per line item.
+- CGST/SGST/IGST split or e-invoicing/GST filing -single GST tax rate captured per line item.
 - Recurring invoices / subscription billing engine.
 - Credit/debit notes & multi-currency support.
 
@@ -68,7 +68,7 @@ Phase 2 Sales & Invoicing module has been successfully implemented for BizSathi.
 - **Backend Pytest Suite (`python -m pytest`):** 20 / 20 PASSED (100%)
 - **Frontend Vitest Suite (`npm run test`):** 5 test files, 7 / 7 PASSED (100%)
 - **Frontend TypeScript Build (`npm run build`):** 0 TypeScript errors, 1838 modules compiled cleanly.
-- **CRM & Auth Integrity:** Re-verified CRM and Auth endpoints and unit tests — zero regressions.
+- **CRM & Auth Integrity:** Re-verified CRM and Auth endpoints and unit tests -zero regressions.
 
 ---
 

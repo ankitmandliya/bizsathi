@@ -297,7 +297,7 @@ def generate_payslip_pdf_html(payslip: Payslip, employee: Employee | None, payro
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Payslip — {payroll_period}</title>
+    <title>Payslip -{payroll_period}</title>
     <style>
         body {{ font-family: 'Inter', -apple-system, sans-serif; color: #1e293b; margin: 0; padding: 40px; background: #fff; font-size: 14px; }}
         .brand {{ font-size: 24px; font-weight: 800; color: #2563eb; }}
@@ -319,7 +319,7 @@ def generate_payslip_pdf_html(payslip: Payslip, employee: Employee | None, payro
     <div class="header">
         <div>
             <div class="brand">{business_name}</div>
-            <p style="color: #64748b; margin: 4px 0 0 0;">SALARY SLIP — {payroll_period}</p>
+            <p style="color: #64748b; margin: 4px 0 0 0;">SALARY SLIP -{payroll_period}</p>
         </div>
         <div style="text-align: right;">
             <p style="margin: 0; font-size: 13px; color: #64748b;">Generated: {created_str}</p>

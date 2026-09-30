@@ -108,7 +108,7 @@ function PayslipModal({ payslip, period, onClose }: { payslip: Payslip; period: 
       <div style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Payslip — {fmtPeriod(period)}</h3>
+            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Payslip -{fmtPeriod(period)}</h3>
             <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>{payslip.employee?.name || '—'}</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -264,7 +264,7 @@ export function PayrollPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <div>
-                  <p style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{fmtPeriod(selectedPayroll.payroll_period)} — Payslips</p>
+                  <p style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{fmtPeriod(selectedPayroll.payroll_period)} -Payslips</p>
                   <p style={{ fontSize: 13, color: 'var(--muted)', margin: '2px 0 0' }}>
                     {payslips.length} employees &nbsp;·&nbsp;
                     Total Net Payable: <strong style={{ color: totalNetPayable >= 0 ? '#059669' : '#dc2626' }}>₹{totalNetPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>

@@ -188,7 +188,7 @@ function EditAttModal({ att, onClose, onSaved }: { att: Attendance; onClose: () 
       <div style={{ background: 'var(--bg-card)', borderRadius: 14, width: '100%', maxWidth: 440, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--line)' }}>
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Edit Attendance</h3>
-          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>{att.employee?.name} — {att.attendance_date}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>{att.employee?.name} -{att.attendance_date}</p>
         </div>
         <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[['check_in_at', 'Check-in Time'], ['check_out_at', 'Check-out Time']].map(([key, label]) => (

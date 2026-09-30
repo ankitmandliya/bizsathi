@@ -153,13 +153,13 @@ async def test_attendance_status_late_and_working_minutes():
     service.att_repo = mock_att_repo
     service.holiday_repo = mock_holiday_repo
 
-    # Check in — use a fixed Monday (Sep 14, 2026) to avoid weekend failures
+    # Check in -use a fixed Monday (Sep 14, 2026) to avoid weekend failures
     check_in_time = datetime(2026, 9, 14, 9, 25, tzinfo=timezone.utc)
     check_in_payload = AttendanceCheckIn(employee_id=employee_id, check_in_time=check_in_time)
 
     att = await service.check_in(tenant_id, check_in_payload, user_id)
 
-    # Set check_in_at to 9:30 AM (after 9:00 + 15m grace) — use fixed date
+    # Set check_in_at to 9:30 AM (after 9:00 + 15m grace) -use fixed date
     base_today = datetime(2026, 9, 14, tzinfo=timezone.utc)
     att.check_in_at = base_today.replace(hour=9, minute=30, second=0, microsecond=0)
     att.check_out_at = None

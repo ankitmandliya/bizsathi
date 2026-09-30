@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, Edit, Globe, Mail, MapPin, Phone, UserCheck } from 'lucide-react';
+import { ArrowLeft, Building2, Edit, Globe, Mail, MapPin, MessageSquare, Phone, UserCheck } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge, PriorityBadge } from '../../../components/ui/Badge';
 import { StateViews } from '../../../components/common/StateViews';
@@ -134,47 +134,160 @@ export function LeadDetailPage() {
         onRetry={loadLeadDetails}
       >
         {lead && (
-          <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '24px', alignItems: 'start' }}>
             {/* Left: Lead profile card */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Header row */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid var(--line)' }}>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Badge label={lead.status} />
-                  <PriorityBadge priority={lead.priority} />
-                </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: 'var(--shadow-md)' }}>
+              {/* Header block with Badges & Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '18px', borderBottom: '1px solid var(--line)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Badge label={lead.status} />
+                    <PriorityBadge priority={lead.priority} />
+                  </div>
                   <button
                     type="button"
-                    className="btn-icon btn-icon-primary"
+                    className="btn-icon"
                     onClick={() => setIsEditModalOpen(true)}
                     title="Edit Lead"
                     aria-label="Edit lead"
+                    style={{ background: 'var(--panel-alt)', border: '1px solid var(--line)', color: 'var(--text)', borderRadius: '8px' }}
                   >
                     <Edit size={14} />
                   </button>
-                  {lead.status !== 'Converted' && (
-                    <Button size="sm" onClick={handleConvert} icon={<UserCheck size={13} />}>
-                      Convert
-                    </Button>
-                  )}
                 </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px' }}>
+                  <div style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(37,99,235,0.3)',
+                    flexShrink: 0
+                  }}>
+                    {lead.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h2 style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {lead.name}
+                    </h2>
+                    <p style={{ fontSize: '12.5px', color: 'var(--muted)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {lead.company ? `${lead.company} ${lead.job_title ? `(${lead.job_title})` : ''}` : 'Individual Contact'}
+                    </p>
+                  </div>
+                </div>
+
+                {lead.status !== 'Converted' && (
+                  <Button
+                    size="md"
+                    onClick={handleConvert}
+                    icon={<UserCheck size={16} />}
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+                      borderRadius: '10px'
+                    }}
+                  >
+                    Convert to Customer
+                  </Button>
+                )}
               </div>
 
-              {/* Contact info */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Quick Action Contact Buttons */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {lead.phone && (
+                  <a
+                    href={`tel:${lead.phone}`}
+                    style={{
+                      flex: 1,
+                      textDecoration: 'none',
+                      padding: '9px 8px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      background: 'var(--primary-dim)',
+                      color: 'var(--primary)',
+                      border: '1px solid rgba(37,99,235,0.2)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Phone size={14} /> Call
+                  </a>
+                )}
+                {lead.email && (
+                  <a
+                    href={`mailto:${lead.email}`}
+                    style={{
+                      flex: 1,
+                      textDecoration: 'none',
+                      padding: '9px 8px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      background: '#f3e8ff',
+                      color: '#7e22ce',
+                      border: '1px solid #e9d5ff',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Mail size={14} /> Email
+                  </a>
+                )}
+                {lead.whatsapp && (
+                  <a
+                    href={`https://wa.me/${lead.whatsapp.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      flex: 1,
+                      textDecoration: 'none',
+                      padding: '9px 8px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      border: '1px solid #bbf7d0',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <MessageSquare size={14} /> Chat
+                  </a>
+                )}
+              </div>
+
+              {/* Contact info list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: 'var(--panel-alt)', padding: '14px', borderRadius: '12px', border: '1px solid var(--line)' }}>
                 <div style={infoRow}>
-                  <Building2 size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
-                  <span style={{ fontWeight: 600 }}>{lead.company || 'No Company'}</span>
-                  {lead.job_title && (
-                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>({lead.job_title})</span>
-                  )}
+                  <Building2 size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>{lead.company || 'No Company Specified'}</span>
                 </div>
 
                 {lead.email && (
                   <div style={infoRow}>
-                    <Mail size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
-                    <a href={`mailto:${lead.email}`} style={{ color: 'var(--primary)', fontSize: '13px' }}>
+                    <Mail size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <a href={`mailto:${lead.email}`} style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}>
                       {lead.email}
                     </a>
                   </div>
@@ -182,15 +295,17 @@ export function LeadDetailPage() {
 
                 {lead.phone && (
                   <div style={infoRow}>
-                    <Phone size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
-                    <span>{lead.phone}</span>
+                    <Phone size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <a href={`tel:${lead.phone}`} style={{ color: 'var(--text)', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}>
+                      {lead.phone}
+                    </a>
                   </div>
                 )}
 
                 {lead.website && (
                   <div style={infoRow}>
-                    <Globe size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
-                    <a href={lead.website} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontSize: '13px' }}>
+                    <Globe size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <a href={lead.website} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}>
                       {lead.website}
                     </a>
                   </div>
@@ -198,43 +313,50 @@ export function LeadDetailPage() {
 
                 {(lead.city || lead.country) && (
                   <div style={infoRow}>
-                    <MapPin size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
-                    <span>{[lead.city, lead.state, lead.country].filter(Boolean).join(', ')}</span>
+                    <MapPin size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                    <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>{[lead.city, lead.state, lead.country].filter(Boolean).join(', ')}</span>
                   </div>
                 )}
               </div>
 
-              {/* Stats */}
-              <div style={{ paddingTop: '16px', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[
-                  { label: 'Source', value: lead.source },
-                  { label: 'Est. Value', value: `₹${lead.estimated_value.toLocaleString('en-IN')}` },
-                  ...(lead.industry ? [{ label: 'Industry', value: lead.industry }] : []),
-                ].map(({ label, value }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <span style={{ color: 'var(--muted-2)' }}>{label}</span>
-                    <span style={{ fontWeight: 600, color: 'var(--text)' }}>{value}</span>
-                  </div>
-                ))}
+              {/* Stats Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Est. Value</span>
+                  <p style={{ fontSize: '17px', fontWeight: 800, color: '#10b981', margin: '4px 0 0', letterSpacing: '-0.3px' }}>
+                    ₹{lead.estimated_value.toLocaleString('en-IN')}
+                  </p>
+                </div>
+
+                <div style={{ background: 'var(--bg-card)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Source</span>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', margin: '4px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {lead.source}
+                  </p>
+                </div>
               </div>
 
               {/* Notes */}
               {lead.notes && (
-                <div style={{ paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
-                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
-                    Notes
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>
+                    Notes & Inquiry Details
                   </p>
-                  <p style={{
-                    fontSize: '12.5px',
+                  <div style={{
+                    fontSize: '13px',
                     color: 'var(--text-2)',
                     background: 'var(--panel-alt)',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    borderLeft: '2px solid var(--primary-strong)',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    borderLeft: '3.5px solid var(--primary)',
                     lineHeight: '1.6',
+                    whiteSpace: 'pre-wrap',
+                    borderTop: '1px solid var(--line)',
+                    borderRight: '1px solid var(--line)',
+                    borderBottom: '1px solid var(--line)',
                   }}>
                     {lead.notes}
-                  </p>
+                  </div>
                 </div>
               )}
             </div>

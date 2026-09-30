@@ -256,11 +256,11 @@ export default function DashboardPage() {
   ];
 
   const activitiesList = metrics?.recent_activities || [
-    { id: '1', text: 'Customer onboarding completed — Acme Corp', time: '2m ago', color: '#16a34a', category: 'customer' },
+    { id: '1', text: 'Customer onboarding completed -Acme Corp', time: '2m ago', color: '#16a34a', category: 'customer' },
     { id: '2', text: 'Payroll batch queued for review', time: '18m ago', color: '#d97706', category: 'payroll' },
-    { id: '3', text: 'Tenant subscription renewed — Globex Inc', time: '1h ago', color: '#2563eb', category: 'subscription' },
-    { id: '4', text: 'New lead created — Sarah Johnson', time: '2h ago', color: '#9333ea', category: 'lead' },
-    { id: '5', text: 'Deal closed — Q4 Enterprise License (₹5.4L)', time: '3h ago', color: '#16a34a', category: 'deal' },
+    { id: '3', text: 'Tenant subscription renewed -Globex Inc', time: '1h ago', color: '#2563eb', category: 'subscription' },
+    { id: '4', text: 'New lead created -Sarah Johnson', time: '2h ago', color: '#9333ea', category: 'lead' },
+    { id: '5', text: 'Deal closed -Q4 Enterprise License (₹5.4L)', time: '3h ago', color: '#16a34a', category: 'deal' },
   ];
 
   return (
