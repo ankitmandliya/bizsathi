@@ -11,7 +11,7 @@ Tests real database workflows across:
 8. Payroll Run Engine & LOP Formula Validation
 """
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -22,17 +22,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.domain import Tenant, User
 from app.models.hrm import (
     Attendance,
-    Department,
-    Designation,
-    Employee,
-    Holiday,
-    LeaveRequest,
-    LeaveType,
-    Payroll,
-    Payslip,
     SalaryAdvance,
-    SalaryStructure,
-    WorkSchedule,
 )
 from app.schemas.hrm import (
     AttendanceCheckIn,

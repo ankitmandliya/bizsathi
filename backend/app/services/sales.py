@@ -2,8 +2,13 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from decimal import Decimal
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.entitlements import has_module_access
+from app.models.inventory import StockMovement
+from app.repositories.inventory import ProductRepository, StockMovementRepository
 
 from app.models.sales import (
     Invoice,
@@ -36,6 +41,7 @@ def calculate_line_item(item_in: LineItemCreate) -> dict[str, Any]:
     tax_amount = round(amount * (item_in.tax_rate_percent / 100.0), 2)
     total = round(amount + tax_amount, 2)
     return {
+        "product_id": getattr(item_in, "product_id", None),
         "description": item_in.description,
         "quantity": item_in.quantity,
         "rate": item_in.rate,
@@ -244,6 +250,7 @@ class SalesService:
         for item in quotation.items:
             items.append(
                 InvoiceItem(
+                    product_id=getattr(item, "product_id", None),
                     description=item.description,
                     quantity=item.quantity,
                     rate=item.rate,
@@ -276,6 +283,7 @@ class SalesService:
 
         quotation.status = "Accepted"
         created_invoice = await self.invoice_repo.create(invoice)
+        await self._process_invoice_stock_deduction(tenant_id, user_id, created_invoice, ip_address, user_agent)
 
         await log_audit_event(
             self.db,
@@ -363,6 +371,8 @@ class SalesService:
 
         created = await self.invoice_repo.create(invoice)
         created.status = compute_invoice_status(created)
+
+        await self._process_invoice_stock_deduction(tenant_id, user_id, created, ip_address, user_agent)
 
         tracked = ["invoice_number", "customer_id", "total_amount", "due_date", "status", "notes"]
         await log_audit_event(
@@ -552,6 +562,7 @@ class SalesService:
         user_agent: str | None = None,
     ) -> None:
         invoice = await self.get_invoice(tenant_id, invoice_id)
+        await self._process_invoice_stock_reversal(tenant_id, user_id, invoice, ip_address, user_agent)
         await self.invoice_repo.soft_delete(tenant_id, invoice_id)
         await log_audit_event(
             self.db,
@@ -566,3 +577,147 @@ class SalesService:
             user_agent=user_agent,
         )
         await self.db.commit()
+
+    async def _process_invoice_stock_deduction(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        invoice: Invoice,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        if not await has_module_access(self.db, tenant_id, "inventory"):
+            return
+
+        items_with_products = [item for item in invoice.items if getattr(item, "product_id", None) is not None]
+        if not items_with_products:
+            return
+
+        prod_repo = ProductRepository(self.db)
+        move_repo = StockMovementRepository(self.db)
+
+        # 1. Validate stock for all items first
+        for item in items_with_products:
+            if item.product_id is None:
+                continue
+            product = await prod_repo.get_by_id(tenant_id, item.product_id, lock_for_update=True)
+            if not product:
+                continue
+            current_stock = await move_repo.get_current_stock(tenant_id, product.id)
+            req_qty = Decimal(str(item.quantity))
+            if current_stock < req_qty:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f'Insufficient stock for "{product.name}". '
+                        f'Available stock: {float(current_stock):g}, Requested quantity: {float(req_qty):g}. '
+                        f'Please reduce the quantity or add more stock.'
+                    ),
+                )
+
+        # 2. Create stock OUT movements idempotently
+        now = datetime.now(UTC)
+        for item in items_with_products:
+            if item.product_id is None:
+                continue
+            product = await prod_repo.get_by_id(tenant_id, item.product_id)
+            if not product:
+                continue
+            exists = await move_repo.check_movement_exists(
+                tenant_id, product.id, "INVOICE", str(invoice.id), movement_type="OUT"
+            )
+            if exists:
+                continue
+
+            req_qty = Decimal(str(item.quantity))
+            unit_cost = Decimal(str(product.purchase_price))
+            tot_cost = round(req_qty * unit_cost, 2)
+
+            movement = StockMovement(
+                tenant_id=tenant_id,
+                product_id=product.id,
+                movement_type="OUT",
+                quantity=req_qty,
+                unit_cost=unit_cost,
+                total_cost=tot_cost,
+                reference_type="INVOICE",
+                reference_id=str(invoice.id),
+                movement_date=now,
+                reason="Sale",
+                notes=f"Deducted for invoice {invoice.invoice_number}",
+                created_by_id=user_id,
+            )
+            await move_repo.create(movement)
+            await log_audit_event(
+                self.db,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                action="inventory.invoice_deduction",
+                entity_type="stock_movement",
+                entity_id=str(movement.id),
+                entity_label=f"Deducted {float(req_qty):g} of {product.name}",
+                details={"invoice_id": str(invoice.id), "invoice_number": invoice.invoice_number, "product_id": str(product.id)},
+                ip_address=ip_address,
+                user_agent=user_agent,
+                commit=False,
+            )
+
+    async def _process_invoice_stock_reversal(
+        self,
+        tenant_id: UUID,
+        user_id: UUID,
+        invoice: Invoice,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        if not await has_module_access(self.db, tenant_id, "inventory"):
+            return
+
+        move_repo = StockMovementRepository(self.db)
+        movements, _ = await move_repo.list_movements(
+            tenant_id=tenant_id,
+            reference_type="INVOICE",
+            reference_id=str(invoice.id),
+            movement_type="OUT",
+            limit=1000,
+        )
+        if not movements:
+            return
+
+        now = datetime.now(UTC)
+        for m in movements:
+            exists = await move_repo.check_movement_exists(
+                tenant_id, m.product_id, "INVOICE_CANCEL", str(invoice.id)
+            )
+            if exists:
+                continue
+
+            reversal = StockMovement(
+                tenant_id=tenant_id,
+                product_id=m.product_id,
+                movement_type="IN",
+                quantity=m.quantity,
+                unit_cost=m.unit_cost,
+                total_cost=m.total_cost,
+                reference_type="INVOICE_CANCEL",
+                reference_id=str(invoice.id),
+                movement_date=now,
+                reason="Invoice Cancellation",
+                notes=f"Restored stock for cancelled invoice {invoice.invoice_number}",
+                created_by_id=user_id,
+            )
+            await move_repo.create(reversal)
+            await log_audit_event(
+                self.db,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                action="inventory.invoice_reversal",
+                entity_type="stock_movement",
+                entity_id=str(reversal.id),
+                entity_label=f"Restored {float(m.quantity):g} for invoice {invoice.invoice_number}",
+                details={"invoice_id": str(invoice.id), "invoice_number": invoice.invoice_number, "product_id": str(m.product_id)},
+                ip_address=ip_address,
+                user_agent=user_agent,
+                commit=False,
+            )
+

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_tenant, get_current_user
 from app.core.database import get_db
-from app.models.domain import AuditLog, Tenant, TenantMember, User
+from app.models.domain import Tenant, TenantMember, User
 from app.schemas.tenant import TenantResponse, TenantSettingsUpdate
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])

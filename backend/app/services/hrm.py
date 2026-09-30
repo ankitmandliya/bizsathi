@@ -9,7 +9,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -61,7 +61,6 @@ from app.schemas.hrm import (
     SalaryAdvanceCreate,
     SalaryAdvanceWarning,
     SalaryStructureCreate,
-    SetupLoginRequest,
     WorkScheduleCreate,
 )
 from app.services.audit import compute_changes, log_audit_event

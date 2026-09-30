@@ -1,14 +1,11 @@
 from datetime import date
 from decimal import Decimal
-from math import ceil
-from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.domain import User
 from app.models.expenses import Expense, ExpenseCategory
 from app.services.audit import compute_changes, log_audit_event
 from app.schemas.expenses import (

@@ -46,6 +46,7 @@ import { ProfilePage } from '../../features/hrm/pages/ProfilePage';
 import { SettingsPage } from '../../features/settings/SettingsPage';
 import { MarketingPage } from '../../features/marketing/MarketingPage';
 import { ExpensesPage } from '../../features/expenses/ExpensesPage';
+import { InventoryPage } from '../../features/inventory/pages/InventoryPage';
 import { hrmApi } from '../../features/hrm/services/hrmApi';
 
 
@@ -119,6 +120,7 @@ export default function AppRouter() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/expenses/categories" element={<ExpensesPage />} />
+        <Route path="/inventory" element={<InventoryPage />} />
 
         <Route path="/subscriptions" element={<ModulePlaceholderPage name="Subscriptions" />} />
         <Route path="/reports" element={<ModulePlaceholderPage name="Reports" />} />

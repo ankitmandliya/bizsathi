@@ -46,6 +46,9 @@ class QuotationItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "quotation_items"
 
     quotation_id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("quotations.id"), nullable=False)
+    product_id: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), ForeignKey("products.id", ondelete="SET NULL"), nullable=True
+    )
     description: Mapped[str] = mapped_column(String(255), nullable=False)
     quantity: Mapped[float] = mapped_column(Numeric(10, 2), default=1.00, nullable=False)
     rate: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00, nullable=False)
@@ -55,6 +58,7 @@ class QuotationItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     total: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00, nullable=False)
 
     quotation: Mapped["Quotation"] = relationship("Quotation", back_populates="items")
+
 
 
 class Invoice(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
@@ -90,6 +94,9 @@ class InvoiceItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "invoice_items"
 
     invoice_id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("invoices.id"), nullable=False)
+    product_id: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True), ForeignKey("products.id", ondelete="SET NULL"), nullable=True
+    )
     description: Mapped[str] = mapped_column(String(255), nullable=False)
     quantity: Mapped[float] = mapped_column(Numeric(10, 2), default=1.00, nullable=False)
     rate: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00, nullable=False)
@@ -99,6 +106,7 @@ class InvoiceItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     total: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00, nullable=False)
 
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="items")
+
 
 
 class Payment(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):

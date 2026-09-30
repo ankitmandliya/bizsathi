@@ -158,6 +158,9 @@ def require_permission(permission_name: str) -> Callable[..., Any]:
                     return
                 if permission_name.startswith("expense.") and rname in ("finance", "accountant", "manager", "accountant manager"):
                     return
+                if permission_name.startswith("inventory.") and rname in ("inventory manager", "store manager", "inventory_manager", "store_manager", "manager"):
+                    return
+
 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

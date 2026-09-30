@@ -15,7 +15,6 @@ from app.services.campaign_service import (
     determine_active_channels,
     execute_campaign_send,
     render_template_text,
-    resolve_target_customers,
 )
 
 

@@ -10,19 +10,16 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 
-from app.models.hrm import Employee, Attendance, Holiday, LeaveType, LeaveRequest, SalaryStructure
-from app.models.domain import User, TenantMember
+from app.models.hrm import Employee, Attendance, Holiday, LeaveType, LeaveRequest
 from app.schemas.hrm import (
     AttendanceCheckIn,
     AttendanceCheckOut,
     EmployeeCreate,
-    EmployeeUpdate,
     HolidayUpdate,
     LeaveRequestCreate,
 )
-from app.services.hrm import HRMService, seed_default_work_schedule, seed_default_leave_types
+from app.services.hrm import HRMService
 
 
 def build_mock_db():

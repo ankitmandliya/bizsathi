@@ -5,7 +5,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.models.crm import Customer
-from app.schemas.crm import CustomerCreate, CustomerUpdate
+from app.schemas.crm import CustomerCreate
 from app.schemas.sales import InvoiceCreate, LineItemCreate
 from app.services.crm import CRMService
 from app.services.sales import SalesService

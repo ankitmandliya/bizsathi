@@ -22,6 +22,7 @@ import {
   X,
   Megaphone,
   Receipt,
+  Package,
 } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth';
@@ -44,8 +45,9 @@ const marketingNav = [
 ];
 
 const operationsNav = [
-  { to: '/expenses', label: 'Office Expenses', icon: Receipt },
-  { to: '/vendors',  label: 'Inventory', icon: Building2 },
+  { to: '/inventory', label: 'Inventory Stock', icon: Package },
+  { to: '/expenses',  label: 'Office Expenses', icon: Receipt },
+  { to: '/vendors',   label: 'Vendors',         icon: Building2 },
 ];
 
 

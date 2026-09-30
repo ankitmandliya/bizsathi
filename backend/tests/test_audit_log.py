@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -6,10 +5,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_current_user
-from app.core.config import get_settings
 from app.core.database import get_db
 from app.main import app
-from app.models.domain import AuditLog, TenantMember, User
+from app.models.domain import TenantMember, User
 from app.services.audit import compute_changes, get_client_ip, log_audit_event
 
 client = TestClient(app)

@@ -5,7 +5,7 @@ from httpx import ASGITransport, AsyncClient
 from app.core.database import AsyncSessionLocal, engine
 from app.core.security import create_access_token, hash_password
 from app.main import app
-from app.models.domain import Role, Tenant, TenantMember, User
+from app.models.domain import Tenant, TenantMember, User
 from app.models.hrm import Department, Designation, Employee, Payslip, Payroll
 
 

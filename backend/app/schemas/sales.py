@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class LineItemCreate(BaseModel):
+    product_id: UUID | None = None
     description: str = Field(..., min_length=1)
     quantity: float = Field(default=1.0, ge=0.01)
     rate: float = Field(default=0.0, ge=0.0)
@@ -16,6 +17,7 @@ class LineItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    product_id: UUID | None = None
     description: str
     quantity: float
     rate: float

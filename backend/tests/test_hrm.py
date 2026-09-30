@@ -4,31 +4,18 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 
 from app.models.hrm import (
-    Attendance,
-    Department,
-    Designation,
     Employee,
-    Holiday,
     LeaveRequest,
     LeaveType,
-    Payroll,
-    Payslip,
     SalaryAdvance,
     SalaryStructure,
     WorkSchedule,
 )
 from app.schemas.hrm import (
     AttendanceCheckIn,
-    AttendanceCheckOut,
-    AttendanceUpdate,
-    EmployeeCreate,
-    LeaveRequestCreate,
-    PayrollRunRequest,
     SalaryAdvanceCreate,
-    SalaryStructureCreate,
     WorkScheduleCreate,
 )
 from app.services.hrm import HRMService

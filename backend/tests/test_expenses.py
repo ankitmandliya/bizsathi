@@ -1,15 +1,15 @@
-from datetime import date, datetime, timedelta
+from datetime import date
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.domain import AuditLog, Tenant, User
+from app.models.domain import AuditLog
 from app.models.expenses import Expense, ExpenseCategory
-from app.schemas.expenses import ExpenseCategoryCreate, ExpenseCategoryUpdate, ExpenseCreate, ExpenseUpdate
+from app.schemas.expenses import ExpenseCategoryCreate, ExpenseCategoryUpdate, ExpenseCreate
 from app.services.expenses import ExpenseService
 
 

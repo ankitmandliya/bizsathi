@@ -34,8 +34,6 @@ from fastapi import HTTPException
 
 from app.models.hrm import (
     Attendance,
-    Department,
-    Designation,
     Employee,
     Holiday,
     LeaveRequest,
@@ -59,7 +57,6 @@ from app.schemas.hrm import (
     HolidayCreate,
     LeaveRequestCreate,
     LeaveTypeCreate,
-    PayrollRunRequest,
     SalaryAdvanceCreate,
     SalaryStructureCreate,
     WorkScheduleCreate,
@@ -68,8 +65,6 @@ from app.services.hrm import (
     HRMService,
     _parse_working_day_set,
     compute_working_days_in_month,
-    seed_default_work_schedule,
-    seed_default_leave_types,
 )
 
 
@@ -1989,7 +1984,6 @@ async def test_payroll_absence_deduction():
     assert ps.unpaid_absence_deduction > 0
     assert ps.net_payable < 30000  # Something was deducted
     # per_day = 30000/22 ≈ 1363.64; deduction = 2 * 1363.64 ≈ 2727.27
-    import math
     expected_deduction = round(30000 / 22 * 2, 2)
     assert abs(ps.unpaid_absence_deduction - expected_deduction) < 1.0
 
