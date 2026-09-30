@@ -391,7 +391,7 @@ class SalaryAdvanceResponse(BaseModel):
 
 
 class SalaryAdvanceCreateResponse(BaseModel):
-    advance: SalaryAdvanceResponse
+    advance: SalaryAdvanceResponse | None = None
     warning: SalaryAdvanceWarning | None = None
 
 
