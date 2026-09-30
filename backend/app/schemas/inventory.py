@@ -126,6 +126,7 @@ class StockInCreate(BaseModel):
     reason: str = Field(default="Purchase", max_length=255)
     reference_number: str | None = Field(None, max_length=255)
     notes: str | None = None
+    vendor_id: UUID | None = None
 
 
 class StockOutCreate(BaseModel):
@@ -151,6 +152,8 @@ class StockMovementResponse(BaseModel):
     product_name: str | None = None
     product_sku: str | None = None
     unit_name: str | None = None
+    vendor_id: UUID | None = None
+    vendor_name: str | None = None
     movement_type: str  # OPENING, IN, OUT, ADJUSTMENT
     quantity: Decimal
     unit_cost: Decimal

@@ -101,6 +101,8 @@ export interface StockMovement {
   total_cost: number;
   reference_type?: string | null;
   reference_id?: string | null;
+  vendor_id?: string | null;
+  vendor_name?: string | null;
   movement_date: string;
   reason?: string | null;
   notes?: string | null;
@@ -120,6 +122,7 @@ export interface StockInInput {
   product_id: string;
   quantity: number;
   unit_cost?: number | null;
+  vendor_id?: string | null;
   movement_date?: string | null;
   reason?: string | null;
   reference_number?: string | null;

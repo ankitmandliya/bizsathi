@@ -216,7 +216,7 @@ sequenceDiagram
 
 ## 4. Database Documentation
 
-The database schema comprises **45 tables** categorized into 7 core functional domains:
+The database schema comprises **46 tables** categorized into 8 core functional domains:
 1. **Domain, Auth & Billing (13 tables):** `tenants`, `users`, `roles`, `permissions`, `tenant_members`, `user_roles`, `invitations`, `sessions`, `refresh_tokens`, `audit_logs`, `plans`, `subscriptions`, `usage_records`.
 2. **CRM Domain (5 tables):** `leads`, `pipeline_stages`, `deals`, `activities`, `customers`.
 3. **Sales & Billing Domain (6 tables):** `sales_sequences`, `quotations`, `quotation_items`, `invoices`, `invoice_items`, `payments`.
@@ -224,6 +224,7 @@ The database schema comprises **45 tables** categorized into 7 core functional d
 5. **HRM & Payroll Domain (12 tables):** `departments`, `designations`, `work_schedules`, `holidays`, `employees`, `salary_structures`, `attendances`, `leave_types`, `leave_requests`, `salary_advances`, `payrolls`, `payslips`.
 6. **Marketing Domain (3 tables):** `templates`, `campaigns`, `campaign_recipients`.
 7. **Office Expense Domain (2 tables):** `expense_categories`, `expenses`.
+8. **Vendor Management Domain (1 table):** `vendors`.
 
 ---
 
@@ -236,9 +237,11 @@ erDiagram
     ROLES ||--o{ TENANT_MEMBERS : assigns
     TENANTS ||--o{ LEADS : owns
     TENANTS ||--o{ CUSTOMERS : owns
+    TENANTS ||--o{ VENDORS : registers
     TENANTS ||--o{ PRODUCTS : catalogs
     PRODUCT_CATEGORIES ||--o{ PRODUCTS : categorizes
     UNITS ||--o{ PRODUCTS : measures
+    VENDORS ||--o? STOCK_MOVEMENTS : supplies
     PRODUCTS ||--o{ STOCK_MOVEMENTS : tracks_ledger
     PRODUCTS ||--o? QUOTATION_ITEMS : referenced_in
     PRODUCTS ||--o? INVOICE_ITEMS : referenced_in
@@ -391,7 +394,7 @@ erDiagram
 
 ##### 17. `stock_movements`
 * **Purpose:** Audit ledger recording all inventory increases, dispatches, opening balances, and adjustments.
-* **Columns:** `id`, `tenant_id` (Indexed), `product_id` (FK -> `products.id`, Indexed), `movement_type` (`OPENING`, `IN`, `OUT`, `ADJUSTMENT`), `quantity` (NUMERIC(12,2)), `unit_cost` (NUMERIC(12,2)), `total_cost` (NUMERIC(12,2)), `reference_type` (VARCHAR(100)), `reference_id` (VARCHAR(255)), `movement_date` (TIMESTAMPTZ), `reason` (VARCHAR(255)), `notes`, `created_by_id` (FK -> `users.id`, Nullable), `created_at` (TIMESTAMPTZ).
+* **Columns:** `id`, `tenant_id` (Indexed), `product_id` (FK -> `products.id`, Indexed), `vendor_id` (FK -> `vendors.id`, Nullable), `movement_type` (`OPENING`, `IN`, `OUT`, `ADJUSTMENT`), `quantity` (NUMERIC(12,2)), `unit_cost` (NUMERIC(12,2)), `total_cost` (NUMERIC(12,2)), `reference_type` (VARCHAR(100)), `reference_id` (VARCHAR(255)), `movement_date` (TIMESTAMPTZ), `reason` (VARCHAR(255)), `notes`, `created_by_id` (FK -> `users.id`, Nullable), `created_at` (TIMESTAMPTZ).
 * **Indexes:** Composite Index `ix_stock_movements_tenant_product` (`tenant_id`, `product_id`), `ix_stock_movements_tenant_type` (`tenant_id`, `movement_type`), `ix_stock_movements_tenant_date` (`tenant_id`, `movement_date`).
 
 ---
@@ -445,6 +448,16 @@ erDiagram
 ##### 25. `expense_categories` & `expenses`
 * `expense_categories`: `id`, `tenant_id`, `name`, `description`, `is_active` (BOOL). Unique Index: (`tenant_id`, `name`).
 * `expenses`: `id`, `tenant_id`, `category_id` (FK -> `expense_categories.id`), `title`, `description`, `amount` (NUMERIC(12,2)), `expense_date` (DATE), `payment_method` (`CASH`, `UPI`, `CARD`, `BANK_TRANSFER`), `vendor_name`, `reference_number`, `receipt_url`, `created_by_id` (FK -> `users.id`), `updated_by_id` (FK -> `users.id`).
+
+---
+
+#### Vendor Management Domain
+
+##### 26. `vendors`
+* **Purpose:** Supplier directory, contact profiles, payment terms, and opening balances.
+* **Columns:** `id` (UUID, PK), `tenant_id` (UUID, Indexed), `name` (VARCHAR(255), Non-Nullable), `contact_person` (VARCHAR(255), Nullable), `phone` (VARCHAR(50), Indexed, Non-Nullable), `email` (VARCHAR(255), Indexed, Nullable), `vendor_type` (VARCHAR(50), Default: `"Business"`), `company_name` (VARCHAR(255), Nullable), `billing_address` (TEXT, Nullable), `city` (VARCHAR(100), Nullable), `state` (VARCHAR(100), Nullable), `pincode` (VARCHAR(20), Nullable), `gstin` (VARCHAR(50), Nullable), `pan` (VARCHAR(50), Nullable), `payment_terms` (VARCHAR(255), Nullable), `opening_balance` (NUMERIC(12,2), Default: 0.00), `opening_balance_type` (VARCHAR(50), Default: `"Payable"`), `notes` (TEXT, Nullable), `deleted_at` (TIMESTAMPTZ, Nullable), `created_at` (TIMESTAMPTZ), `updated_at` (TIMESTAMPTZ).
+* **Indexes:** Composite Index `ix_vendors_tenant_phone` (`tenant_id`, `phone`), `ix_vendors_tenant_name` (`tenant_id`, `name`), `ix_vendors_tenant_deleted` (`tenant_id`, `deleted_at`).
+* **Inventory Integration:** Nullable `vendor_id` (FK -> `vendors.id`) added to `stock_movements` to link purchases/stock receipts directly to vendor supplier profiles.
 
 ---
 
@@ -566,6 +579,19 @@ All API endpoints are mounted under the root `/api/v1` prefix and enforce JSON r
 
 ---
 
+### Vendor Endpoints (`/api/v1/vendors`)
+| Method | Endpoint | Permission Required | Description |
+|---|---|---|---|
+| `GET` | `/vendors` | `vendor.view` | Paginated vendor directory listing with search (`name`, `company`, `phone`, `email`, `GSTIN`). |
+| `POST` | `/vendors` | `vendor.create` | Creates new vendor profile and logs audit event. |
+| `GET` | `/vendors/{id}` | `vendor.view` | Retrieves single vendor profile with calculated outstanding balance. |
+| `PUT` | `/vendors/{id}` | `vendor.edit` | Updates vendor details; audit-logs opening balance modifications. |
+| `DELETE` | `/vendors/{id}` | `vendor.delete` | Soft deletes vendor profile (preserves historic stock movement references). |
+| `GET` | `/vendors/import-template` | `vendor.import` | Downloads formatted sample CSV import template. |
+| `POST` | `/vendors/import` | `vendor.import` | Asynchronous bulk CSV vendor import with phone-number deduplication. |
+
+---
+
 ### Marketing & Audit Endpoints (`/api/v1/marketing`, `/api/v1/audit-logs`)
 | Method | Endpoint | Permission Required | Description |
 |---|---|---|---|
@@ -589,6 +615,7 @@ All API endpoints are mounted under the root `/api/v1` prefix and enforce JSON r
 | **Inventory & Stock Control** | Manages stock catalog, reorder alerts & ledger audit | `products`, `product_categories`, `units`, `stock_movements` | `POST /inventory/stock/in`, `POST /inventory/stock/out`, `POST /inventory/products/import` | Prohibits negative stock on manual stock out; auto-deducts stock on sales invoices and restores stock on cancellation; deduplicates SKUs on bulk CSV import |
 | **HRM Attendance & Payroll** | Automates workforce management & monthly payroll | `employees`, `attendances`, `leave_requests`, `payrolls`, `payslips` | `POST /hrm/attendance/check-in`, `POST /hrm/payroll/run` | Calculates unpaid absence deductions and recovers salary advances during monthly run |
 | **Expense Tracking** | Monitors operational company outflows | `expense_categories`, `expenses` | `POST /expenses`, `POST /expenses/upload-receipt` | Enforces 10MB limit and file format validation for receipt attachments |
+| **Vendor Management** | Manages supplier directory, contact profiles & opening balances | `vendors`, `stock_movements` | `POST /vendors`, `POST /vendors/import` | Soft delete only (preserves historic stock movement links); deduplicates on phone during CSV import |
 | **Marketing Campaigns** | Reaches customers via WhatsApp & Email | `templates`, `campaigns`, `campaign_recipients` | `POST /marketing/templates/submit-approval`, `POST /marketing/campaigns/{id}/send` | Only sends WhatsApp messages if template status is `APPROVED` |
 
 ---
@@ -758,6 +785,7 @@ The platform is orchestrated via Docker Compose:
   8. `008_expense_module.py`: Expense categories and office expenses.
   9. `009_audit_log_fields.py`: Additional audit logging fields.
   10. `010_inventory_module.py`: Product categories, units of measurement, products catalog, stock movements, and optional sales line item relationships.
+  11. `011_vendor_module.py`: Vendor management table (`vendors`) with opening balances, payment terms, and optional `vendor_id` foreign key on `stock_movements`.
 
 ---
 
@@ -793,7 +821,7 @@ The platform is orchestrated via Docker Compose:
 
 1. **Third-Party WhatsApp API Credentials:** Currently uses simulated provider template approval in development; requires live WhatsApp Cloud API / Gupshup API credentials for production dispatch.
 2. **Email SMTP Server Configuration:** Default email handler logs fallback messages if local SMTP server environment variables are omitted.
-3. **Placeholder Modules:** `Subscriptions` and `Vendors` backend routes currently expose foundation status endpoints (`"status": "foundation_ready"`).
+3. **Placeholder Modules:** `Subscriptions` backend routes currently expose foundation status endpoints (`"status": "foundation_ready"`).
 
 ---
 
@@ -823,7 +851,7 @@ The platform is orchestrated via Docker Compose:
 
 ### Executive Launch Summary
 * **Current Architecture:** Decoupled React 19 SPA + FastAPI Async Microservices + PostgreSQL 16 + Redis 7 Broker + RQ Worker Queue.
-* **Completed Core Modules:** Multi-Tenant Onboarding, Authentication & RBAC, CRM Pipeline, Sales & Invoicing with Outstanding Ledgers, Customer CSV Import, Inventory & Stock Control (Product Catalog, Stock Movements, Reorder Alerts, Stock Valuation & Bulk CSV Import), HRM Workforce & Payroll Runs, Office Expense Tracking with Receipt Uploads, Marketing Campaign Automation, and Security Audit Logging.
+* **Completed Core Modules:** Multi-Tenant Onboarding, Authentication & RBAC, CRM Pipeline, Sales & Invoicing with Outstanding Ledgers, Customer CSV Import, Inventory & Stock Control (Product Catalog, Stock Movements, Reorder Alerts, Stock Valuation & Bulk CSV Import), Vendor Management (Supplier Directory, Opening Balances, CSV Import & Stock In integration), HRM Workforce & Payroll Runs, Office Expense Tracking with Receipt Uploads, Marketing Campaign Automation, and Security Audit Logging.
 * **Quality Assurance Verification:** 100% backend Pytest suite pass (232 tests), 100% Mypy type safety, 100% Ruff compliance, 100% ESLint compliance, 100% Vitest pass, clean production build.
 * **Production Dependencies:** Docker Engine 24+, PostgreSQL 16, Redis 7, Nginx 1.24+.
 * **Recommended Launch Next Steps:** Configure production `JWT_SECRET_KEY` and `DATABASE_URL` secrets in `.env`, run `alembic upgrade head`, set `VITE_SHOW_DEV_LOGIN_HINT=false`, and execute final SSL certificate binding via Nginx.

@@ -11,6 +11,7 @@ from app.models.base import Base, TenantScopedMixin, TimestampMixin, UUIDPrimary
 
 if TYPE_CHECKING:
     from app.models.domain import User
+    from app.models.vendors import Vendor
 
 
 class ProductCategory(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
@@ -91,6 +92,11 @@ class StockMovement(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin
     reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    vendor_id: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("vendors.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_by_id: Mapped[UUID | None] = mapped_column(
         PostgresUUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -99,9 +105,11 @@ class StockMovement(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin
 
     product: Mapped["Product"] = relationship("Product", lazy="joined")
     creator: Mapped["User | None"] = relationship("User", foreign_keys=[created_by_id], lazy="joined")
+    vendor: Mapped["Vendor | None"] = relationship("Vendor", foreign_keys=[vendor_id], lazy="joined")
 
     __table_args__ = (
         Index("ix_stock_movements_tenant_product", "tenant_id", "product_id"),
         Index("ix_stock_movements_tenant_date", "tenant_id", "movement_date"),
         Index("ix_stock_movements_tenant_ref", "tenant_id", "reference_type", "reference_id"),
+        Index("ix_stock_movements_tenant_vendor", "tenant_id", "vendor_id"),
     )

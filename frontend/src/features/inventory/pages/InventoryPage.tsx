@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Package,
   Plus,
@@ -270,6 +270,7 @@ export const InventoryPage: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [totalMovementsCountState, setTotalMovementsCountState] = useState(0);
   const [valuationReport, setValuationReport] = useState<StockValueReport | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -304,6 +305,22 @@ export const InventoryPage: React.FC = () => {
   const [unitModalOpen, setUnitModalOpen] = useState(false);
   const [selectedUnitForEdit, setSelectedUnitForEdit] = useState<Unit | null>(null);
 
+  const loadMovements = useCallback(async () => {
+    try {
+      const res = await inventoryApi.getStockHistory({
+        movement_type: movementTypeFilter || undefined,
+        page: movementPage,
+        limit: movementPageSize,
+      });
+      setMovements(res.items || []);
+      setTotalMovementsCountState(res.total || 0);
+    } catch (error) {
+      console.error('Failed to load stock movements:', error);
+      setMovements([]);
+      setTotalMovementsCountState(0);
+    }
+  }, [movementTypeFilter, movementPage, movementPageSize]);
+
   const loadAllData = async () => {
     setLoading(true);
     try {
@@ -315,7 +332,7 @@ export const InventoryPage: React.FC = () => {
           console.error('Error fetching products:', err);
           return { items: [], total: 0 };
         }),
-        inventoryApi.getStockHistory({ limit: 100 }).catch((err) => {
+        inventoryApi.getStockHistory({ limit: movementPageSize }).catch((err) => {
           console.error('Error fetching stock history:', err);
           return { items: [], total: 0 };
         }),
@@ -327,7 +344,8 @@ export const InventoryPage: React.FC = () => {
       setUnits(unts);
       setProducts(prodsRes.items);
       setTotalProductsCount(prodsRes.total);
-      setMovements(movesRes.items);
+      setMovements(movesRes.items || []);
+      setTotalMovementsCountState(movesRes.total || movesRes.items?.length || 0);
       setValuationReport(valRes);
     } catch (error) {
       console.error('Failed to load inventory data:', error);
@@ -340,6 +358,12 @@ export const InventoryPage: React.FC = () => {
     loadAllData();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'movements') {
+      loadMovements();
+    }
+  }, [activeTab, loadMovements]);
+
   const handleProductSubmit = async (data: any) => {
     if (selectedProductForEdit) {
       await inventoryApi.updateProduct(selectedProductForEdit.id, data);
@@ -347,12 +371,18 @@ export const InventoryPage: React.FC = () => {
       await inventoryApi.createProduct(data);
     }
     await loadAllData();
+    if (activeTab === 'movements') {
+      await loadMovements();
+    }
   };
 
   const handleDeleteProduct = async (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to delete product "${name}"?`)) {
       await inventoryApi.deleteProduct(id);
       await loadAllData();
+      if (activeTab === 'movements') {
+        await loadMovements();
+      }
     }
   };
 
@@ -365,6 +395,7 @@ export const InventoryPage: React.FC = () => {
       await inventoryApi.createStockAdjustment(data);
     }
     await loadAllData();
+    await loadMovements();
   };
 
   const handleCategorySubmit = async (data: any) => {
@@ -450,18 +481,80 @@ export const InventoryPage: React.FC = () => {
   const startProductIdx = (currentProductPage - 1) * productPageSize;
   const paginatedProducts = filteredProducts.slice(startProductIdx, startProductIdx + productPageSize);
 
-  // Movements filtering & pagination
-  const filteredMovements = (movements || []).filter((m) => {
-    return !movementTypeFilter || m.movement_type === movementTypeFilter;
-  });
-  const totalMovementsCount = filteredMovements.length;
+  // Stock valuation fallback across products catalog
+  const calculatedStockValue = (products || []).reduce(
+    (sum, p) => sum + (Number(p.current_stock) || 0) * (Number(p.purchase_price) || 0),
+    0
+  );
+  const displayTotalStockValue =
+    dashboardData?.total_stock_value && Number(dashboardData.total_stock_value) > 0
+      ? Number(dashboardData.total_stock_value)
+      : valuationReport?.total_stock_value && Number(valuationReport.total_stock_value) > 0
+      ? Number(valuationReport.total_stock_value)
+      : calculatedStockValue;
+
+  // Dashboard counter & list fallbacks from products catalog and movements state
+  const calculatedLowStockCount = (products || []).filter((p) => {
+    const stock = Number(p.current_stock) || 0;
+    const minStock = Number(p.minimum_stock) || 0;
+    return stock > 0 && stock <= minStock;
+  }).length;
+
+  const calculatedOutOfStockCount = (products || []).filter((p) => {
+    const stock = Number(p.current_stock) || 0;
+    return stock === 0;
+  }).length;
+
+  const displayLowStockCount =
+    dashboardData?.low_stock_count !== undefined && dashboardData?.low_stock_count !== null
+      ? dashboardData.low_stock_count
+      : calculatedLowStockCount;
+
+  const displayOutOfStockCount =
+    dashboardData?.out_of_stock_count !== undefined && dashboardData?.out_of_stock_count !== null
+      ? dashboardData.out_of_stock_count
+      : calculatedOutOfStockCount;
+
+  const displayLowStockProducts =
+    dashboardData?.low_stock_products && dashboardData.low_stock_products.length > 0
+      ? dashboardData.low_stock_products
+      : (products || [])
+          .filter((p) => {
+            const stock = Number(p.current_stock) || 0;
+            const minStock = Number(p.minimum_stock) || 0;
+            return stock <= minStock;
+          })
+          .map((p) => ({
+            ...p,
+            stock_status: (Number(p.current_stock) || 0) === 0 ? 'Out of Stock' : 'Low Stock',
+          }));
+
+  const displayRecentMovements =
+    dashboardData?.recent_movements && dashboardData.recent_movements.length > 0
+      ? dashboardData.recent_movements
+      : movements.slice(0, 7);
+
+  // Movements filtering & pagination (Server-side paginated via API)
+  const totalMovementsCount = totalMovementsCountState;
   const totalMovementPages = Math.ceil(totalMovementsCount / movementPageSize) || 1;
   const currentMovementPage = Math.min(movementPage, totalMovementPages);
-  const startMovementIdx = (currentMovementPage - 1) * movementPageSize;
-  const paginatedMovements = filteredMovements.slice(startMovementIdx, startMovementIdx + movementPageSize);
+  const paginatedMovements = movements;
 
-  // Reports pagination
-  const valuationItems = valuationReport?.items || [];
+  // Valuation Reports pagination
+  const valuationItems =
+    valuationReport?.items && valuationReport.items.length > 0
+      ? valuationReport.items
+      : (products || []).map((p) => ({
+          product_id: p.id,
+          product_name: p.name,
+          name: p.name,
+          sku: p.sku,
+          unit_name: p.unit?.name || 'pc',
+          current_stock: p.current_stock || 0,
+          purchase_price: p.purchase_price || 0,
+          selling_price: p.selling_price || 0,
+          total_value: (Number(p.current_stock) || 0) * (Number(p.purchase_price) || 0),
+        }));
   const totalReportsCount = valuationItems.length;
   const totalReportPages = Math.ceil(totalReportsCount / reportPageSize) || 1;
   const currentReportPage = Math.min(reportPage, totalReportPages);
@@ -490,7 +583,7 @@ export const InventoryPage: React.FC = () => {
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)', tracking: '-0.02em' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)', letterSpacing: '-0.02em' }}>
               Inventory & Stock Management
             </h1>
             <span
@@ -660,7 +753,7 @@ export const InventoryPage: React.FC = () => {
         >
           <p style={{ fontSize: '12px', fontWeight: 600, opacity: 0.85, margin: 0 }}>Total Stock Value</p>
           <h3 style={{ fontSize: '26px', fontWeight: 800, margin: '6px 0 0', color: '#fff' }}>
-            ₹{Number(dashboardData?.total_stock_value ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{Number(displayTotalStockValue).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h3>
           <p style={{ fontSize: '11px', opacity: 0.75, margin: '8px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Sparkles size={12} /> Valuation based on cost price
@@ -720,7 +813,7 @@ export const InventoryPage: React.FC = () => {
             </div>
           </div>
           <h3 style={{ fontSize: '26px', fontWeight: 800, margin: '8px 0 0', color: '#d97706' }}>
-            {dashboardData?.low_stock_count ?? 0}
+            {displayLowStockCount}
           </h3>
           <p style={{ fontSize: '11px', color: '#b45309', margin: '4px 0 0' }}>
             Below minimum reorder threshold
@@ -750,7 +843,7 @@ export const InventoryPage: React.FC = () => {
             </div>
           </div>
           <h3 style={{ fontSize: '26px', fontWeight: 800, margin: '8px 0 0', color: '#dc2626' }}>
-            {dashboardData?.out_of_stock_count ?? 0}
+            {displayOutOfStockCount}
           </h3>
           <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>
             Zero current stock balance
@@ -820,7 +913,7 @@ export const InventoryPage: React.FC = () => {
               </button>
             </div>
 
-            {!dashboardData?.low_stock_products || dashboardData.low_stock_products.length === 0 ? (
+            {!displayLowStockProducts || displayLowStockProducts.length === 0 ? (
               <div style={{ padding: '32px', textAlign: 'center', border: '1px dashed var(--line)', borderRadius: '12px' }}>
                 <CheckCircle2 size={32} color="#10b981" style={{ margin: '0 auto 8px' }} />
                 <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Stock Levels Healthy</p>
@@ -840,7 +933,7 @@ export const InventoryPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {dashboardData.low_stock_products.map((p) => (
+                    {displayLowStockProducts.map((p) => (
                       <tr key={p.id} style={{ borderBottom: '1px solid var(--line)' }}>
                         <td style={{ padding: '12px', fontWeight: 600, color: 'var(--text)' }}>{p.name}</td>
                         <td style={{ padding: '12px', fontFamily: 'monospace', color: 'var(--muted)' }}>{p.sku}</td>
@@ -865,7 +958,7 @@ export const InventoryPage: React.FC = () => {
                         <td style={{ padding: '12px', textAlign: 'right' }}>
                           <button
                             type="button"
-                            onClick={() => openStockModal('IN', p)}
+                            onClick={() => openStockModal('IN', p as any)}
                             style={{
                               padding: '5px 12px',
                               borderRadius: '6px',
@@ -894,11 +987,11 @@ export const InventoryPage: React.FC = () => {
               <History size={18} color="#4f46e5" /> Recent Ledger Logs
             </h3>
 
-            {!dashboardData?.recent_movements || dashboardData.recent_movements.length === 0 ? (
+            {!displayRecentMovements || displayRecentMovements.length === 0 ? (
               <p style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center', padding: '24px 0' }}>No recent movements recorded.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {dashboardData.recent_movements.slice(0, 7).map((m) => (
+                {displayRecentMovements.slice(0, 7).map((m) => (
                   <div
                     key={m.id}
                     style={{
@@ -1126,7 +1219,7 @@ export const InventoryPage: React.FC = () => {
                         transition: 'background-color 0.15s ease',
                       }}
                     >
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text)', maxW: '260px' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text)', maxWidth: '260px' }}>
                         <div>{p.name}</div>
                         {p.description && <p style={{ fontSize: '11px', fontWeight: 400, color: 'var(--muted)', margin: '3px 0 0', lineHeight: 1.3 }}>{p.description}</p>}
                       </td>
@@ -1251,32 +1344,97 @@ export const InventoryPage: React.FC = () => {
       {activeTab === 'movements' && (
         <div style={{ background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--line)', padding: '0', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', borderBottom: '1px solid var(--line)' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-              Audit Stock Ledger Transactions
-            </h3>
-            <select
-              value={movementTypeFilter}
-              onChange={(e) => {
-                setMovementTypeFilter(e.target.value);
-                setMovementPage(1);
-              }}
-              style={{
-                padding: '9px 12px',
-                borderRadius: '8px',
-                border: '1.5px solid var(--line)',
-                background: 'var(--bg-card)',
-                color: 'var(--text)',
-                fontSize: '13px',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="">All Movement Types</option>
-              <option value="OPENING">OPENING Stock</option>
-              <option value="IN">IN (Purchases / Reversals)</option>
-              <option value="OUT">OUT (Sales / Dispatches)</option>
-              <option value="ADJUSTMENT">ADJUSTMENT</option>
-            </select>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+                Audit Stock Ledger Transactions
+              </h3>
+              <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0' }}>Real-time movement logs, purchases, dispatches & inventory adjustments</p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <select
+                value={movementTypeFilter}
+                onChange={(e) => {
+                  setMovementTypeFilter(e.target.value);
+                  setMovementPage(1);
+                }}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--line)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text)',
+                  fontSize: '13px',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                <option value="">All Movement Types</option>
+                <option value="OPENING">OPENING Stock</option>
+                <option value="IN">IN (Purchases / Reversals)</option>
+                <option value="OUT">OUT (Sales / Dispatches)</option>
+                <option value="ADJUSTMENT">ADJUSTMENT</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={() => openStockModal('IN')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  background: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  color: '#047857',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                <ArrowDownRight size={14} /> Stock In
+              </button>
+              <button
+                type="button"
+                onClick={() => openStockModal('OUT')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  color: '#b45309',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                <ArrowUpRight size={14} /> Stock Out
+              </button>
+              <button
+                type="button"
+                onClick={() => openStockModal('ADJUSTMENT')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  background: '#e0e7ff',
+                  border: '1px solid #c7d2fe',
+                  color: '#4338ca',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                <Sliders size={14} /> Adjustment
+              </button>
+            </div>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -1295,8 +1453,26 @@ export const InventoryPage: React.FC = () => {
               <tbody>
                 {paginatedMovements.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
-                      No ledger transactions match the selected movement filter.
+                    <td colSpan={7} style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--muted)' }}>
+                      <History size={36} color="var(--muted)" style={{ margin: '0 auto 8px', display: 'block' }} />
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>No stock ledger transactions found</p>
+                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 16px' }}>Record a Stock In, Stock Out, or Inventory Adjustment to populate ledger history.</p>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => openStockModal('IN')}
+                          style={{ padding: '8px 16px', borderRadius: '8px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+                        >
+                          + Record Stock In
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openStockModal('OUT')}
+                          style={{ padding: '8px 16px', borderRadius: '8px', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+                        >
+                          - Record Stock Out
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -1541,12 +1717,12 @@ export const InventoryPage: React.FC = () => {
             <div style={{ textAlign: 'right' }}>
               <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Total Asset Value:</span>
               <p style={{ fontSize: '22px', fontWeight: 800, color: '#4f46e5', margin: '2px 0 0' }}>
-                ₹{Number(valuationReport?.total_stock_value ?? valuationReport?.total_value ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{Number(displayTotalStockValue).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           </div>
 
-          {!valuationReport?.items || valuationReport.items.length === 0 ? (
+          {!valuationItems || valuationItems.length === 0 ? (
             <p style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center', padding: '32px 0' }}>No valuation items available.</p>
           ) : (
             <>

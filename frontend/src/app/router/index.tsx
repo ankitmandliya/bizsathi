@@ -47,6 +47,7 @@ import { SettingsPage } from '../../features/settings/SettingsPage';
 import { MarketingPage } from '../../features/marketing/MarketingPage';
 import { ExpensesPage } from '../../features/expenses/ExpensesPage';
 import { InventoryPage } from '../../features/inventory/pages/InventoryPage';
+import { VendorsPage } from '../../features/vendors/pages/VendorsPage';
 import { hrmApi } from '../../features/hrm/services/hrmApi';
 
 
@@ -106,7 +107,7 @@ export default function AppRouter() {
         <Route path="/sales/quotations" element={<QuotationsListPage />} />
         <Route path="/sales/quotations/:id" element={<QuotationDetailPage />} />
         <Route path="/customers" element={<CustomersListPage />} />
-        <Route path="/vendors" element={<ModulePlaceholderPage name="Vendors" />} />
+        <Route path="/vendors" element={<VendorsPage />} />
         <Route path="/hrm" element={<Navigate to="/hrm/employees" replace />} />
         <Route path="/hrm/employees" element={<EmployeesPage />} />
         <Route path="/hrm/attendance" element={<AttendancePage />} />

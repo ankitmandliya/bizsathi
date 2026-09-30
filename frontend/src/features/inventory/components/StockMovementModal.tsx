@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowDownRight, ArrowUpRight, Sliders, AlertCircle } from 'lucide-react';
 import { Product, StockInInput, StockOutInput, StockAdjustmentInput } from '../types/inventory';
+import { vendorApi } from '../../vendors/services/vendorApi';
+import { Vendor } from '../../vendors/types/vendor';
 
 interface StockMovementModalProps {
   isOpen: boolean;
@@ -22,6 +24,8 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
   const [productId, setProductId] = useState('');
   const [quantity, setQuantity] = useState<number>(1);
   const [unitCost, setUnitCost] = useState<number>(0);
+  const [vendorId, setVendorId] = useState<string>('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [physicalCount, setPhysicalCount] = useState<number>(0);
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
@@ -29,6 +33,14 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const activeProduct = products.find((p) => p.id === productId) || selectedProduct;
+
+  useEffect(() => {
+    if (isOpen && type === 'IN') {
+      vendorApi.getVendors({ limit: 100 })
+        .then((res) => setVendors(res.items))
+        .catch(() => setVendors([]));
+    }
+  }, [isOpen, type]);
 
   useEffect(() => {
     if (selectedProduct) {
@@ -41,6 +53,7 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
       setPhysicalCount(products[0].current_stock);
     }
     setQuantity(1);
+    setVendorId('');
     setReason('');
     setNotes('');
     setError(null);
@@ -86,6 +99,7 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
           product_id: productId,
           quantity: Number(quantity),
           unit_cost: unitCost > 0 ? Number(unitCost) : undefined,
+          vendor_id: vendorId || undefined,
           reason: reason.trim() || 'Stock Received',
           notes: notes.trim() || undefined,
         };
@@ -261,6 +275,35 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
               <span style={{ fontWeight: 700, color: 'var(--text)' }}>
                 {activeProduct.current_stock} {activeProduct.unit_name || 'units'}
               </span>
+            </div>
+          )}
+
+          {type === 'IN' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
+                Vendor / Supplier (Optional)
+              </label>
+              <select
+                value={vendorId}
+                onChange={(e) => setVendorId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--line)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text)',
+                  fontSize: '13px',
+                  outline: 'none',
+                }}
+              >
+                <option value="">-- No Vendor Selected --</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} ({v.phone})
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 

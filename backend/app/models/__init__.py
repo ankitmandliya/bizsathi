@@ -40,6 +40,7 @@ from app.models.sales import (
 from app.models.marketing import Campaign, CampaignRecipient, Template
 from app.models.expenses import Expense, ExpenseCategory
 from app.models.inventory import Product, ProductCategory, StockMovement, Unit
+from app.models.vendors import Vendor
 
 __all__ = [
     "Base",
@@ -95,6 +96,8 @@ __all__ = [
     "Unit",
     "Product",
     "StockMovement",
+    # Vendors
+    "Vendor",
 ]
 
 

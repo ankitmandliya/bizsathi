@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.inventory import Product, ProductCategory, StockMovement, Unit
+from app.models.vendors import Vendor
 from app.repositories.inventory import (
     ProductCategoryRepository,
     ProductRepository,
@@ -620,6 +621,20 @@ class InventoryService:
         if not p:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
+        v_id = data.vendor_id
+        if v_id:
+            from sqlalchemy import select
+            v_res = await self.db.execute(
+                select(Vendor).where(
+                    Vendor.id == v_id,
+                    Vendor.tenant_id == tenant_id,
+                    Vendor.deleted_at.is_(None),
+                )
+            )
+            v_obj = v_res.scalar_one_or_none()
+            if not v_obj:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vendor not found")
+
         qty = Decimal(str(data.quantity))
         unit_c = data.unit_cost if data.unit_cost is not None else Decimal(str(p.purchase_price))
         tot_c = round(qty * unit_c, 2)
@@ -637,6 +652,7 @@ class InventoryService:
             movement_date=m_date,
             reason=data.reason,
             notes=data.notes,
+            vendor_id=v_id,
             created_by_id=user_id,
         )
         created = await self.movement_repo.create(movement)
@@ -818,6 +834,8 @@ class InventoryService:
             product_name=p.name if p else None,
             product_sku=p.sku if p else None,
             unit_name=unit_name,
+            vendor_id=m.vendor_id,
+            vendor_name=m.vendor.name if m.vendor else None,
             movement_type=m.movement_type,
             quantity=m.quantity,
             unit_cost=m.unit_cost,

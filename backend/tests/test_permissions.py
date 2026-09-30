@@ -47,6 +47,13 @@ PERMISSION_SCENARIOS = [
     # sales.payment.view / create
     ("sales.payment.view", "GET", "/api/v1/sales/payments", None),
     ("sales.payment.create", "POST", "/api/v1/sales/payments", {"invoice_id": DUMMY_UUID, "amount": 100}),
+
+    # vendor.view / create / edit / delete / import
+    ("vendor.view", "GET", "/api/v1/vendors", None),
+    ("vendor.create", "POST", "/api/v1/vendors", {"name": "Vendor A", "phone": "9876543210"}),
+    ("vendor.edit", "PUT", f"/api/v1/vendors/{DUMMY_UUID}", {"name": "Vendor B"}),
+    ("vendor.delete", "DELETE", f"/api/v1/vendors/{DUMMY_UUID}", None),
+    ("vendor.import", "POST", "/api/v1/vendors/import", None),
 ]
 
 
