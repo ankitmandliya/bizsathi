@@ -18,6 +18,7 @@ import { ReportFilterBar } from '../components/ReportFilterBar';
 import { ReportCharts } from '../components/ReportCharts';
 import { ReportTable } from '../components/ReportTable';
 import { BarChart3, AlertCircle } from 'lucide-react';
+import { getErrorMessage } from '../../../utils/error';
 
 export const ReportsPage: React.FC = () => {
   const [category, setCategory] = useState<ReportCategory>('sales');
@@ -75,13 +76,11 @@ export const ReportsPage: React.FC = () => {
       if (activeCategoryRef.current === reqCategory) {
         setReportData(data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load report data:', err);
       if (activeCategoryRef.current === reqCategory) {
         setReportData(null);
-        setError(
-          err.response?.data?.detail || 'Failed to load report metrics. Please check permissions or backend connection.'
-        );
+        setError(getErrorMessage(err));
       }
     } finally {
       if (activeCategoryRef.current === reqCategory) {
@@ -126,7 +125,7 @@ export const ReportsPage: React.FC = () => {
     setExporting(true);
     try {
       await reportsApi.exportReportCsv(category, filters);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('CSV Export failed:', err);
       alert('Failed to export CSV. Please try again.');
     } finally {

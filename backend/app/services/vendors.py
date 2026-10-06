@@ -2,6 +2,7 @@ import csv
 import io
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -180,7 +181,7 @@ class VendorService:
         if not updated:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vendor update failed")
 
-        audit_details = {"name": updated.name}
+        audit_details: dict[str, Any] = {"name": updated.name}
         if ob_changed:
             audit_details["opening_balance_change"] = {
                 "old": f"{old_ob} ({old_ob_type})",
@@ -247,7 +248,7 @@ class VendorService:
         imported = 0
         skipped_duplicates = 0
         failed = 0
-        errors: list[dict] = []
+        errors: list[dict[str, Any]] = []
         total_rows = 0
 
         for row_idx, raw_row in enumerate(reader, start=2):

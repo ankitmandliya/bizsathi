@@ -1,4 +1,5 @@
 from datetime import datetime, UTC
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
@@ -72,7 +73,7 @@ class VendorRepository:
 
         return items, total
 
-    async def update(self, tenant_id: UUID, vendor_id: UUID, update_data: dict) -> Vendor | None:
+    async def update(self, tenant_id: UUID, vendor_id: UUID, update_data: dict[str, Any]) -> Vendor | None:
         vendor = await self.get_by_id(tenant_id, vendor_id)
         if not vendor:
             return None

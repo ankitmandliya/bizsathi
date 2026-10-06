@@ -1975,7 +1975,7 @@ async def test_payroll_absence_deduction():
     service.adv_repo.get_pending_for_period = AsyncMock(return_value=[])
     service.payslip_repo = AsyncMock()
 
-    payroll = await service.run_payroll(tenant_id, "2026-09", user_id)
+    await service.run_payroll(tenant_id, "2026-09", user_id)
     payslips = [obj for obj in db._stored if isinstance(obj, Payslip)]
     assert len(payslips) == 1
     ps = payslips[0]
@@ -2223,7 +2223,6 @@ async def test_cross_tenant_payroll_payslips_blocked():
     """Getting payslips for another tenant's payroll → 404."""
     db = build_mock_db()
     service = HRMService(db)
-    tenant_a = uuid4()
     tenant_b = uuid4()
 
     service.payroll_repo = AsyncMock()
@@ -2240,7 +2239,6 @@ async def test_cross_tenant_payroll_payslips_blocked():
 
 def test_leave_balance_single_day_request():
     """Single-day leave request counts as 1 day."""
-    service = make_service_for_compute()
     tenant_id = uuid4()
     employee_id = uuid4()
     leave_type_id = uuid4()

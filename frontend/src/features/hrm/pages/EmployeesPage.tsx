@@ -459,7 +459,7 @@ function SetupLoginModal({ isOpen, onClose, onSaved, employee }: { isOpen: boole
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>System Access Role</label>
-            <select value={role} onChange={e => setRole(e.target.value as any)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-card)', color: 'var(--text)' }}>
+            <select value={role} onChange={e => setRole(e.target.value as 'Standard Employee' | 'HR Manager' | 'Admin')} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--bg-card)', color: 'var(--text)' }}>
               <option value="Standard Employee">Standard Employee (Self-Service Only)</option>
               <option value="HR Manager">HR Manager (Full HRMS Access)</option>
               <option value="Admin">Admin (Full System Access)</option>

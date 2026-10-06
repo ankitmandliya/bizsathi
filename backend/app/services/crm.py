@@ -1,6 +1,7 @@
 import csv
 from datetime import UTC, datetime
 import io
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -716,7 +717,7 @@ class CRMService:
         for key, value in update_data.items():
             setattr(cust, key, value)
 
-        audit_details: dict[str, str | bool | dict[str, str | float]] = {"name": cust.name}
+        audit_details: dict[str, Any] = {"name": cust.name}
         if balance_changed:
             audit_details["balance_changed"] = True
             audit_details["old_balance"] = old_balance_details

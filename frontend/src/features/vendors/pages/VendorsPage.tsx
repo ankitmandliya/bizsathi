@@ -197,7 +197,7 @@ export const VendorsPage: React.FC = () => {
       for (const sample of SAMPLE_VENDORS_DATA) {
         try {
           await vendorApi.createVendor(sample);
-        } catch (e) {
+        } catch {
           // Ignore if phone already exists
         }
       }

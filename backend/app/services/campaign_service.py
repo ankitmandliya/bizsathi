@@ -18,8 +18,8 @@ if str(workspace_root) not in sys.path:
     sys.path.insert(0, str(workspace_root))
 
 try:
-    from workers.tasks.communication import process_communication_task
-    from workers.tasks.email import send_email_task
+    from workers.tasks.communication import process_communication_task  # type: ignore[import-not-found]
+    from workers.tasks.email import send_email_task  # type: ignore[import-not-found]
 except ImportError:
     def process_communication_task(channel: str, recipient: str, payload: dict[str, Any]) -> dict[str, Any]:
         return {"status": "processed", "channel": channel, "recipient": recipient}
@@ -226,4 +226,4 @@ async def execute_campaign_send(
     await db.commit()
     await db.refresh(campaign)
 
-    return campaign
+    return campaign  # type: ignore[no-any-return]

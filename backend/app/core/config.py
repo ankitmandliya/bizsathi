@@ -20,6 +20,16 @@ class Settings(BaseSettings):
     )
     redis_url: str = Field(default="redis://localhost:6379/0", alias="REDIS_URL")
 
+    # SMTP Configuration Settings
+    smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_username: str | None = Field(default=None, alias="SMTP_USERNAME")
+    smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
+    smtp_use_tls: bool = Field(default=True, alias="SMTP_USE_TLS")
+    smtp_use_ssl: bool = Field(default=False, alias="SMTP_USE_SSL")
+    mail_from_email: str = Field(default="no-reply@bizsathi.com", alias="MAIL_FROM_EMAIL")
+    mail_from_name: str = Field(default="BizSathi", alias="MAIL_FROM_NAME")
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
 

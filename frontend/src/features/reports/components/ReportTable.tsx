@@ -118,7 +118,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({
                 })}
 
                 {items.some((r) => r.status_badge) && (
-                  <td style={{ textAlign: 'right', whitespace: 'nowrap' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {row.status_badge ? (
                       <span className={`reports-badge ${getStatusBadgeClass(row.status_badge)}`}>
                         {row.status_badge}
@@ -136,7 +136,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({
 
       {/* Pagination Bar */}
       {totalPages > 1 && (
-        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyBetween: 'space-between', fontSize: '12px', color: 'var(--muted)', background: 'var(--panel-alt)' }}>
+        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: 'var(--muted)', background: 'var(--panel-alt)' }}>
           <span>
             Page <strong style={{ color: 'var(--text)' }}>{page}</strong> of{' '}
             <strong style={{ color: 'var(--text)' }}>{totalPages}</strong>

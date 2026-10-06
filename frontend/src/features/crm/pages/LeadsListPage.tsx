@@ -113,13 +113,9 @@ export function LeadsListPage() {
         page: 1,
         limit: 100,
       });
-      if (res.items && res.items.length > 0) {
-        setLeads(res.items);
-      } else {
-        setLeads(INITIAL_DEMO_LEADS);
-      }
+      setLeads(res.items || []);
     } catch {
-      setLeads(INITIAL_DEMO_LEADS);
+      setLeads([]);
     }
   }, [search, statusFilter, sourceFilter, priorityFilter]);
 

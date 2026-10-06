@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Megaphone, Plus, FileText, Send, Eye, Calendar, Clock, BarChart2 } from 'lucide-react';
+import { Megaphone, Plus, FileText, Send, BarChart2 } from 'lucide-react';
 import { Campaign, Template, marketingApi } from '../../services/marketingApi';
 import { TemplatesList } from './TemplatesList';
 import { CampaignWizardModal } from './CampaignWizardModal';

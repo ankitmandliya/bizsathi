@@ -169,3 +169,156 @@ def test_email_verification_flow() -> None:
         assert "Invalid or expired" in res.json()["detail"]
     finally:
         app.dependency_overrides.clear()
+
+
+def test_auth_me_is_owner_resolution() -> None:
+    """Dedicated test for /auth/me to verify is_owner and roles calculation for Owner vs Member."""
+    owner_user_id = uuid4()
+    member_user_id = uuid4()
+    tenant_id = uuid4()
+
+    owner_user = User(
+        id=owner_user_id,
+        email="owner@company.com",
+        password_hash="hash",
+        full_name="Owner User",
+        is_active=True,
+        is_verified=True,
+        is_platform_admin=False,
+    )
+    member_user = User(
+        id=member_user_id,
+        email="member@company.com",
+        password_hash="hash",
+        full_name="Member User",
+        is_active=True,
+        is_verified=True,
+        is_platform_admin=False,
+    )
+
+    owner_member = TenantMember(user_id=owner_user_id, tenant_id=tenant_id, status="active", is_owner=True)
+    plain_member = TenantMember(user_id=member_user_id, tenant_id=tenant_id, status="active", is_owner=False, role_id=None)
+
+    # Test Owner
+    async def mock_get_owner_user() -> User:
+        return owner_user
+
+    async def mock_db_owner():
+        mock_db = AsyncMock(spec=AsyncSession)
+        def mock_exec(stmt):
+            m = MagicMock()
+            sql_str = str(stmt).lower()
+            if "from tenant_members" in sql_str:
+                m.scalars.return_value.first.return_value = owner_member
+                m.scalar_one_or_none.return_value = owner_member
+            elif "from tenants" in sql_str:
+                m.scalar_one_or_none.return_value = None
+            return m
+        mock_db.execute.side_effect = mock_exec
+        yield mock_db
+
+    app.dependency_overrides[get_current_user] = mock_get_owner_user
+    app.dependency_overrides[get_db] = mock_db_owner
+
+    try:
+        res = client.get("/api/v1/auth/me", headers={"X-Tenant-ID": str(tenant_id)})
+        assert res.status_code == 200
+        data = res.json()
+        assert data["is_owner"] is True
+        assert "owner" in data["roles"]
+
+        # Test Plain Member
+        async def mock_get_member_user() -> User:
+            return member_user
+
+        async def mock_db_member():
+            mock_db = AsyncMock(spec=AsyncSession)
+            def mock_exec(stmt):
+                m = MagicMock()
+                sql_str = str(stmt).lower()
+                if "from tenant_members" in sql_str:
+                    m.scalars.return_value.first.return_value = plain_member
+                    m.scalar_one_or_none.return_value = plain_member
+                elif "from tenants" in sql_str:
+                    m.scalar_one_or_none.return_value = None
+                return m
+            mock_db.execute.side_effect = mock_exec
+            yield mock_db
+
+        app.dependency_overrides[get_current_user] = mock_get_member_user
+        app.dependency_overrides[get_db] = mock_db_member
+
+        res2 = client.get("/api/v1/auth/me", headers={"X-Tenant-ID": str(tenant_id)})
+        assert res2.status_code == 200
+        data2 = res2.json()
+        assert data2["is_owner"] is False
+        assert "owner" not in data2["roles"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_fresh_tenant_has_zero_records_on_creation() -> None:
+    """Permanent regression guard: A freshly created tenant has zero records across business list endpoints."""
+    owner_id = uuid4()
+    fresh_tenant_id = uuid4()
+
+    owner_user = User(
+        id=owner_id,
+        email="fresh_owner@company.com",
+        password_hash="hash",
+        full_name="Fresh Owner",
+        is_active=True,
+        is_verified=True,
+        is_platform_admin=False,
+    )
+    tenant_member = TenantMember(user_id=owner_id, tenant_id=fresh_tenant_id, status="active", is_owner=True)
+
+    async def mock_get_user() -> User:
+        return owner_user
+
+    async def mock_db_session():
+        mock_db = AsyncMock(spec=AsyncSession)
+        def mock_exec(stmt):
+            m = MagicMock()
+            sql_str = str(stmt).lower()
+            if "from tenant_members" in sql_str:
+                m.scalars.return_value.first.return_value = tenant_member
+                m.scalar_one_or_none.return_value = tenant_member
+            else:
+                m.scalar.return_value = 0
+                m.scalar_one.return_value = 0
+                m.scalars.return_value.all.return_value = []
+                m.scalars.return_value.first.return_value = None
+                m.scalar_one_or_none.return_value = 0
+
+            return m
+        mock_db.execute.side_effect = mock_exec
+        yield mock_db
+
+    app.dependency_overrides[get_current_user] = mock_get_user
+    app.dependency_overrides[get_db] = mock_db_session
+
+    try:
+        headers = {"X-Tenant-ID": str(fresh_tenant_id)}
+
+        # CRM Leads
+        leads_res = client.get("/api/v1/crm/leads", headers=headers)
+        assert leads_res.status_code == 200
+        assert leads_res.json()["total"] == 0
+        assert len(leads_res.json()["items"]) == 0
+
+        # Sales Quotations
+        quotes_res = client.get("/api/v1/sales/quotations", headers=headers)
+        assert quotes_res.status_code == 200
+        assert quotes_res.json()["total"] == 0
+        assert len(quotes_res.json()["items"]) == 0
+
+        # Sales Invoices
+        invoices_res = client.get("/api/v1/sales/invoices", headers=headers)
+        assert invoices_res.status_code == 200
+        assert invoices_res.json()["total"] == 0
+        assert len(invoices_res.json()["items"]) == 0
+    finally:
+        app.dependency_overrides.clear()
+
+

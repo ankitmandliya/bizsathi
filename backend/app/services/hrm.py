@@ -29,6 +29,7 @@ from app.models.hrm import (
     SalaryStructure,
     WorkSchedule,
 )
+from app.services.usage_service import UsageService
 from app.repositories.hrm import (
     AttendanceRepository,
     DepartmentRepository,
@@ -383,6 +384,9 @@ class HRMService:
         res = await self.db.execute(stmt)
         user = res.scalar_one_or_none()
 
+        # Enforce user limit check
+        await UsageService.check_tenant_user_limit(self.db, tenant_id, target_user_id=user.id if user else None)
+
         if not user:
             user = User(
                 email=email_clean,
@@ -463,14 +467,15 @@ class HRMService:
         if login_requested and username and password:
             await self.setup_employee_login(tenant_id, emp.id, username, password, user_id)
 
-        emp = await self.emp_repo.get_by_id(tenant_id, emp.id)
+        reloaded_emp = await self.emp_repo.get_by_id(tenant_id, emp.id)
+        active_emp = reloaded_emp or emp
         tracked = ["name", "email", "phone", "department_id", "designation_id", "status"]
         await log_audit_event(self.db, tenant_id=tenant_id, user_id=user_id, action="create",
-                               entity_type="Employee", entity_id=str(emp.id),  # type: ignore[union-attr]
-                               entity_label=emp.name if emp else None,
-                               changes=compute_changes(None, emp, tracked),
+                               entity_type="Employee", entity_id=str(active_emp.id),
+                               entity_label=active_emp.name,
+                               changes=compute_changes(None, active_emp, tracked),
                                details={"name": data.name})
-        return emp  # type: ignore[return-value]
+        return active_emp
 
     async def update_employee(self, tenant_id: UUID, employee_id: UUID, data: EmployeeUpdate, user_id: UUID) -> Employee:
         emp = await self.emp_repo.get_by_id(tenant_id, employee_id)
@@ -842,10 +847,11 @@ class HRMService:
         )
         self.db.add(lr)
         await self.db.commit()
-        lr = await self.lr_repo.get_by_id(tenant_id, lr.id)  # reload with relationships
+        reloaded_lr = await self.lr_repo.get_by_id(tenant_id, lr.id)  # reload with relationships
+        active_lr = reloaded_lr or lr
         await log_audit_event(self.db, tenant_id=tenant_id, user_id=user_id, action="create",
-                               entity_type="LeaveRequest", entity_id=str(lr.id))  # type: ignore[union-attr]
-        return lr  # type: ignore[return-value]
+                               entity_type="LeaveRequest", entity_id=str(active_lr.id))
+        return active_lr
 
     async def list_leave_requests(
         self, tenant_id: UUID, employee_id: UUID | None, req_status: str | None, page: int, limit: int
@@ -935,17 +941,18 @@ class HRMService:
         )
         self.db.add(adv)
         await self.db.commit()
-        adv = await self.adv_repo.get_by_id(tenant_id, adv.id)  # reload
+        reloaded_adv = await self.adv_repo.get_by_id(tenant_id, adv.id)  # reload
+        active_adv = reloaded_adv or adv
         await log_audit_event(
             self.db,
             tenant_id=tenant_id,
             user_id=user_id,
             action="create",
             entity_type="SalaryAdvance",
-            entity_id=str(adv.id),  # type: ignore[union-attr]
+            entity_id=str(active_adv.id),
             details={"amount": float(data.amount), "period": data.payroll_period},
         )
-        return adv, warning  # type: ignore[return-value]
+        return active_adv, warning
 
     async def list_salary_advances(
         self, tenant_id: UUID, employee_id: UUID | None, payroll_period: str | None, page: int, limit: int
@@ -1192,6 +1199,6 @@ class HRMService:
         for key, value in data.items():
             if value is not None and hasattr(emp, key):
                 setattr(emp, key, value)
-        await self.db.commit()
-        return await self.emp_repo.get_by_id(tenant_id, emp.id)
+        updated_emp = await self.emp_repo.get_by_id(tenant_id, emp.id)
+        return updated_emp or emp
 

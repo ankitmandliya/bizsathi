@@ -27,11 +27,13 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Shield,
 } from 'lucide-react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth';
 import { useTheme } from '../context/ThemeContext';
 import { hrmApi } from '../features/hrm/services/hrmApi';
+import apiClient from '../services/api/client';
 
 const overviewNav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -55,7 +57,6 @@ const operationsNav = [
 ];
 
 const peopleNav = [
-  { to: '/hrm/my-dashboard', label: 'My Dashboard',    icon: UserCheck },
   { to: '/hrm/employees',    label: 'Employees',       icon: Users },
   { to: '/hrm/attendance',   label: 'Attendance',      icon: Clock },
   { to: '/hrm/leave',        label: 'Leave',           icon: Calendar },
@@ -69,6 +70,7 @@ const reportsNav = [
 
 const settingsNav = [
   { to: '/settings', label: 'Business Settings', icon: SettingsIcon },
+  { to: '/subscriptions', label: 'Subscription & Billing', icon: IndianRupee },
 ];
 
 function NavGroup({
@@ -133,6 +135,26 @@ export default function DashboardLayout() {
   }, []);
 
   useEffect(() => {
+    if (user?.tenant_name) {
+      setBusinessName(user.tenant_name);
+      localStorage.setItem('bizsathi.business_name', user.tenant_name);
+    }
+    apiClient.get('/api/v1/tenants/current')
+      .then(res => {
+        if (res.data?.name) {
+          setBusinessName(res.data.name);
+          localStorage.setItem('bizsathi.business_name', res.data.name);
+        }
+      })
+      .catch(() => { /* silent */ });
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.is_platform_admin || user?.is_owner || user?.roles?.includes('owner') || user?.roles?.includes('admin')) {
+      setIsPlainEmployee(false);
+      return;
+    }
+
     hrmApi.getMyProfile()
       .then(p => setProfile(p))
       .catch(() => { /* silent */ });
@@ -141,10 +163,12 @@ export default function DashboardLayout() {
       .then(res => {
         if (res && res.total === 1 && res.items[0]?.email?.toLowerCase() === user?.email?.toLowerCase()) {
           setIsPlainEmployee(true);
+        } else {
+          setIsPlainEmployee(false);
         }
       })
       .catch(() => {
-        setIsPlainEmployee(true);
+        setIsPlainEmployee(false);
       });
   }, [user]);
 
@@ -156,9 +180,9 @@ export default function DashboardLayout() {
     });
   };
 
-  const displayName = profile?.name || user?.full_name || 'Ramesh Traders';
-  const displayEmail = profile?.email || user?.email || 'admin@example.com';
-  const displayRole = profile?.designation?.name || (isPlainEmployee ? 'Employee' : 'Owner · Admin');
+  const displayName = profile?.name || user?.full_name || 'Business Account';
+  const displayEmail = profile?.email || user?.email || '';
+  const displayRole = profile?.designation?.name || (user?.is_platform_admin ? 'Super Admin' : (isPlainEmployee ? 'Employee' : 'Business Owner'));
   const userInitials = getInitials(displayName);
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -247,6 +271,14 @@ export default function DashboardLayout() {
         </div>
 
         <div className="sidebar-nav-scroll">
+          {user?.is_platform_admin && (
+            <NavGroup
+              label="SUPER ADMIN"
+              items={[{ to: '/admin/dashboard', label: 'Super Admin Console', icon: Shield }]}
+              onNavigate={closeSidebar}
+              isCollapsed={sidebarCollapsed}
+            />
+          )}
           <NavGroup label="OVERVIEW" items={filteredOverviewNav} onNavigate={closeSidebar} isCollapsed={sidebarCollapsed} />
           {!isPlainEmployee && <NavGroup label="SALES & CRM" items={salesNav} onNavigate={closeSidebar} isCollapsed={sidebarCollapsed} />}
           {!isPlainEmployee && <NavGroup label="MARKETING" items={marketingNav} onNavigate={closeSidebar} isCollapsed={sidebarCollapsed} />}
@@ -311,6 +343,29 @@ export default function DashboardLayout() {
 
           {/* Right Header Actions */}
           <div className="topbar-right">
+            {user?.is_platform_admin && (
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)',
+                }}
+              >
+                <Shield size={14} /> <span>Admin Console</span>
+              </button>
+            )}
+
             <button type="button" className="quick-add-btn">
               <Plus size={15} /> <span>Quick Add</span>
             </button>
@@ -357,6 +412,18 @@ export default function DashboardLayout() {
                       <p className="profile-dropdown-email">{displayEmail}</p>
                       <span className="profile-dropdown-badge">{displayRole}</span>
                     </div>
+
+                    {user?.is_platform_admin && (
+                      <button
+                        type="button"
+                        onClick={() => { setProfileMenuOpen(false); navigate('/admin'); }}
+                        className="profile-dropdown-item"
+                        style={{ color: '#6366f1', fontWeight: 700 }}
+                      >
+                        <Shield size={15} />
+                        Super Admin Console
+                      </button>
+                    )}
 
                     <button
                       type="button"

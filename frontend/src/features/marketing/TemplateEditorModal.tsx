@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Send, Eye, Code, CheckCircle, Smartphone, Mail } from 'lucide-react';
+import { X, Send, Eye, Smartphone, Mail } from 'lucide-react';
 import { Template, marketingApi } from '../../services/marketingApi';
 
 interface TemplateEditorModalProps {

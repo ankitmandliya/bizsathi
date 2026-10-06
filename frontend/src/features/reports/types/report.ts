@@ -39,7 +39,7 @@ export interface ChartSeries {
 
 export interface ReportTableRow {
   id: string;
-  columns: Record<string, any>;
+  columns: Record<string, unknown>;
   status_badge?: string;
   raw_id?: string;
 }

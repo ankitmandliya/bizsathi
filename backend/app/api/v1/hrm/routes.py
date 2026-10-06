@@ -762,7 +762,7 @@ async def create_salary_advance(
 
     if adv is None:
         # Warning-only response (confirm=False and would go negative)
-        return SalaryAdvanceCreateResponse(advance=None, warning=warning)  # type: ignore[arg-type]
+        return SalaryAdvanceCreateResponse(advance=None, warning=warning)
 
     return SalaryAdvanceCreateResponse(
         advance=SalaryAdvanceResponse.model_validate(adv),

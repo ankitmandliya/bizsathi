@@ -12,7 +12,6 @@ import {
   Scale,
   RefreshCw,
   FileText,
-  DollarSign,
   Edit2,
   Trash2,
   CheckCircle2,
@@ -35,6 +34,15 @@ import {
   StockMovement,
   StockValueReport,
   Unit,
+  StockInInput,
+  StockOutInput,
+  StockAdjustmentInput,
+  ProductCategoryCreateInput,
+  ProductCategoryUpdateInput,
+  UnitCreateInput,
+  UnitUpdateInput,
+  ProductCreateInput,
+  ProductUpdateInput,
 } from '../types/inventory';
 import { ProductFormModal } from '../components/ProductFormModal';
 import { ProductImportModal } from '../components/ProductImportModal';
@@ -262,7 +270,7 @@ const PaginationControls: React.FC<PaginationProps> = ({
 };
 
 export const InventoryPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'movements' | 'categories' | 'reports'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'movements' | 'categories' | 'units' | 'reports'>('dashboard');
 
   const [dashboardData, setDashboardData] = useState<InventoryDashboard | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -309,7 +317,7 @@ export const InventoryPage: React.FC = () => {
     try {
       const res = await inventoryApi.getStockHistory({
         movement_type: movementTypeFilter || undefined,
-        page: movementPage,
+        skip: (movementPage - 1) * movementPageSize,
         limit: movementPageSize,
       });
       setMovements(res.items || []);
@@ -321,7 +329,7 @@ export const InventoryPage: React.FC = () => {
     }
   }, [movementTypeFilter, movementPage, movementPageSize]);
 
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
       const [dash, cats, unts, prodsRes, movesRes, valRes] = await Promise.all([
@@ -352,11 +360,11 @@ export const InventoryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [movementPageSize]);
 
   useEffect(() => {
     loadAllData();
-  }, []);
+  }, [loadAllData]);
 
   useEffect(() => {
     if (activeTab === 'movements') {
@@ -364,11 +372,11 @@ export const InventoryPage: React.FC = () => {
     }
   }, [activeTab, loadMovements]);
 
-  const handleProductSubmit = async (data: any) => {
+  const handleProductSubmit = async (data: ProductCreateInput | ProductUpdateInput) => {
     if (selectedProductForEdit) {
-      await inventoryApi.updateProduct(selectedProductForEdit.id, data);
+      await inventoryApi.updateProduct(selectedProductForEdit.id, data as ProductUpdateInput);
     } else {
-      await inventoryApi.createProduct(data);
+      await inventoryApi.createProduct(data as ProductCreateInput);
     }
     await loadAllData();
     if (activeTab === 'movements') {
@@ -386,23 +394,23 @@ export const InventoryPage: React.FC = () => {
     }
   };
 
-  const handleMovementSubmit = async (data: any) => {
+  const handleMovementSubmit = async (data: StockInInput | StockOutInput | StockAdjustmentInput) => {
     if (movementType === 'IN') {
-      await inventoryApi.createStockIn(data);
+      await inventoryApi.createStockIn(data as StockInInput);
     } else if (movementType === 'OUT') {
-      await inventoryApi.createStockOut(data);
+      await inventoryApi.createStockOut(data as StockOutInput);
     } else {
-      await inventoryApi.createStockAdjustment(data);
+      await inventoryApi.createStockAdjustment(data as StockAdjustmentInput);
     }
     await loadAllData();
     await loadMovements();
   };
 
-  const handleCategorySubmit = async (data: any) => {
+  const handleCategorySubmit = async (data: ProductCategoryCreateInput | ProductCategoryUpdateInput) => {
     if (selectedCategoryForEdit) {
       await inventoryApi.updateCategory(selectedCategoryForEdit.id, data);
     } else {
-      await inventoryApi.createCategory(data);
+      await inventoryApi.createCategory(data as ProductCategoryCreateInput);
     }
     await loadAllData();
   };
@@ -414,11 +422,11 @@ export const InventoryPage: React.FC = () => {
     }
   };
 
-  const handleUnitSubmit = async (data: any) => {
+  const handleUnitSubmit = async (data: UnitCreateInput | UnitUpdateInput) => {
     if (selectedUnitForEdit) {
       await inventoryApi.updateUnit(selectedUnitForEdit.id, data);
     } else {
-      await inventoryApi.createUnit(data);
+      await inventoryApi.createUnit(data as UnitCreateInput);
     }
     await loadAllData();
   };
@@ -549,7 +557,7 @@ export const InventoryPage: React.FC = () => {
           product_name: p.name,
           name: p.name,
           sku: p.sku,
-          unit_name: p.unit?.name || 'pc',
+          unit_name: p.unit_name || 'pc',
           current_stock: p.current_stock || 0,
           purchase_price: p.purchase_price || 0,
           selling_price: p.selling_price || 0,
@@ -866,7 +874,7 @@ export const InventoryPage: React.FC = () => {
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'products' | 'movements' | 'categories' | 'units' | 'reports')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -964,7 +972,7 @@ export const InventoryPage: React.FC = () => {
                               {Number(p.current_stock || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                             <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, marginLeft: '4px' }}>
-                              {p.unit_name || p.unit?.name || 'Pcs'}
+                              {p.unit_name || 'Pcs'}
                             </span>
                           </td>
                           <td style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
@@ -993,7 +1001,7 @@ export const InventoryPage: React.FC = () => {
                           <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                             <button
                               type="button"
-                              onClick={() => openStockModal('IN', p as any)}
+                              onClick={() => openStockModal('IN', p as unknown as Product)}
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1166,7 +1174,7 @@ export const InventoryPage: React.FC = () => {
 
               <select
                 value={selectedStatus}
-                onChange={(e) => handleStatusChange(e.target.value as any)}
+                onChange={(e) => handleStatusChange(e.target.value as 'ALL' | 'NORMAL' | 'LOW' | 'OUT')}
                 style={{
                   padding: '9px 12px',
                   borderRadius: '8px',
@@ -1797,7 +1805,7 @@ export const InventoryPage: React.FC = () => {
                           ₹{Number(item.selling_price || 0).toFixed(2)}
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 800, color: '#4f46e5' }}>
-                          ₹{Number(item.total_value ?? item.stock_value ?? 0).toFixed(2)}
+                          ₹{Number(item.total_value ?? (item as Record<string, unknown>).stock_value ?? 0).toFixed(2)}
                         </td>
                       </tr>
                     ))}

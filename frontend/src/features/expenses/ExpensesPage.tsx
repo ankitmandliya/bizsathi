@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Plus,
   FolderPlus,
@@ -76,7 +76,7 @@ function getPresetDateRange(preset: DatePreset): { from_date: string; to_date: s
   };
 }
 
-export function formatDate(dateStr?: string | null): string {
+function formatDate(dateStr?: string | null): string {
   if (!dateStr) return '—';
   const parts = dateStr.slice(0, 10).split('-');
   if (parts.length === 3) {
@@ -121,14 +121,6 @@ export function ExpensesPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  useEffect(() => {
-    loadExpensesAndSummary();
-  }, [fromDate, toDate, selectedCategoryId, selectedPaymentMethod, searchQuery, page, pageSize]);
-
   const loadCategories = async () => {
     try {
       const cats = await expensesApi.getCategories(true);
@@ -138,7 +130,11 @@ export function ExpensesPage() {
     }
   };
 
-  const loadExpensesAndSummary = async () => {
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadExpensesAndSummary = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -166,7 +162,11 @@ export function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fromDate, toDate, selectedCategoryId, selectedPaymentMethod, searchQuery, page, pageSize]);
+
+  useEffect(() => {
+    loadExpensesAndSummary();
+  }, [loadExpensesAndSummary]);
 
   const handleDatePresetChange = (preset: DatePreset) => {
     setDatePreset(preset);

@@ -26,12 +26,10 @@ from app.schemas.crm import (
     PaginatedLeadsResponse,
     PipelineStageResponse,
 )
+from app.services.audit import get_client_ip, get_user_agent
 from app.services.crm import CRMService
 
 router = APIRouter(prefix="/crm", tags=["crm"])
-
-
-from app.services.audit import get_client_ip, get_user_agent
 
 
 @router.get("/status")

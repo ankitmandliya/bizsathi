@@ -57,14 +57,17 @@ async def test_setup_employee_login():
     )
 
     service.emp_repo.get_by_id = AsyncMock(return_value=emp)
-    db.execute = AsyncMock()
-    mock_user_res = MagicMock()
-    mock_user_res.scalar_one_or_none.return_value = None
-    mock_tm_res = MagicMock()
-    mock_tm_res.scalar_one_or_none.return_value = None
-    db.execute.side_effect = [mock_user_res, mock_tm_res]
+    mock_gen = MagicMock()
+    mock_gen.scalars.return_value.all.return_value = []
+    mock_gen.scalars.return_value.first.return_value = None
+    mock_gen.scalar_one_or_none.return_value = None
+    mock_gen.scalar.return_value = 0
+    mock_gen.first.return_value = None
+    db.execute = AsyncMock(return_value=mock_gen)
+
 
     res = await service.setup_employee_login(tenant_id, emp.id, "ankit@company.com", "Test123$$!", admin_id)
+
     assert res is not None
     assert emp.user_id is not None
     db.commit.assert_called()

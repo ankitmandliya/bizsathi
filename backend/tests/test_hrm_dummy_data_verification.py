@@ -72,6 +72,15 @@ async def _run_verification(db: AsyncSession):
     db.add(tenant)
     await db.flush()
 
+    from app.models.domain import Plan, Subscription
+    plan = Plan(name="Growth Test", slug=f"growth-{uuid4().hex[:6]}", price_monthly=1999, user_limit=None, is_active=True)
+    db.add(plan)
+    await db.flush()
+
+    sub = Subscription(tenant_id=tenant.id, plan_id=plan.id, status="ACTIVE", current_period_start=datetime.now(timezone.utc), current_period_end=datetime.now(timezone.utc))
+    db.add(sub)
+    await db.flush()
+
     admin_user = User(
         email=f"admin-{uuid4().hex[:6]}@bizsathi.com",
         password_hash=hash_password("AdminPass123!"),
@@ -86,6 +95,7 @@ async def _run_verification(db: AsyncSession):
     await db.flush()
 
     hrm_service = HRMService(db)
+
 
     # -------------------------------------------------------------------------
     # Work Schedule & Departments
@@ -208,7 +218,7 @@ async def _run_verification(db: AsyncSession):
     assert neha.user_id is not None
 
     # Assign Salary Structures
-    sal_rahul = await hrm_service.set_salary_structure(
+    await hrm_service.set_salary_structure(
         tenant.id,
         rahul.id,
         SalaryStructureCreate(
@@ -220,7 +230,7 @@ async def _run_verification(db: AsyncSession):
         admin_user.id,
     )
 
-    sal_priya = await hrm_service.set_salary_structure(
+    await hrm_service.set_salary_structure(
         tenant.id,
         priya.id,
         SalaryStructureCreate(
@@ -232,7 +242,7 @@ async def _run_verification(db: AsyncSession):
         admin_user.id,
     )
 
-    sal_amit = await hrm_service.set_salary_structure(
+    await hrm_service.set_salary_structure(
         tenant.id,
         amit.id,
         SalaryStructureCreate(
@@ -244,7 +254,7 @@ async def _run_verification(db: AsyncSession):
         admin_user.id,
     )
 
-    sal_neha = await hrm_service.set_salary_structure(
+    await hrm_service.set_salary_structure(
         tenant.id,
         neha.id,
         SalaryStructureCreate(

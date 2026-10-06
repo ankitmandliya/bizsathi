@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Download, Eye, FileText, IndianRupee, MessageCircle, Plus, Search, X } from 'lucide-react';
+import { Calendar, Download, Eye, IndianRupee, MessageCircle, Plus, Search, X } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Invoice, salesApi } from '../services/salesApi';
 import { crmApi, Customer } from '../../crm/services/crmApi';

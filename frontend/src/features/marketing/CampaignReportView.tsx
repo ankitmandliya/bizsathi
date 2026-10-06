@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle, AlertTriangle, Send, RefreshCw, Smartphone, Mail } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, Smartphone, Mail } from 'lucide-react';
 import { CampaignDetail, marketingApi } from '../../services/marketingApi';
 
 interface CampaignReportViewProps {
@@ -12,11 +12,7 @@ export function CampaignReportView({ campaignId, onBack }: CampaignReportViewPro
   const [loading, setLoading] = useState(true);
   const [filterChannel, setFilterChannel] = useState<'ALL' | 'WHATSAPP' | 'EMAIL'>('ALL');
 
-  useEffect(() => {
-    loadDetail();
-  }, [campaignId]);
-
-  const loadDetail = async () => {
+  const loadDetail = useCallback(async () => {
     setLoading(true);
     try {
       const data = await marketingApi.getCampaignDetail(campaignId);
@@ -26,7 +22,11 @@ export function CampaignReportView({ campaignId, onBack }: CampaignReportViewPro
     } finally {
       setLoading(false);
     }
-  };
+  }, [campaignId]);
+
+  useEffect(() => {
+    loadDetail();
+  }, [loadDetail]);
 
   if (loading) {
     return <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>Loading Campaign Report...</div>;

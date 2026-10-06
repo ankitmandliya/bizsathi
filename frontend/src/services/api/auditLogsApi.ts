@@ -9,8 +9,8 @@ export interface AuditLogItem {
   entity_type: string;
   entity_id: string | null;
   entity_label: string | null;
-  changes: Record<string, { old: any; new: any }> | null;
-  details: Record<string, any> | null;
+  changes: Record<string, { old: unknown; new: unknown }> | null;
+  details: Record<string, unknown> | null;
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;

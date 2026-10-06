@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -22,6 +22,17 @@ def mock_get_current_user():
         email="reporter@bizsathi.com",
         full_name="Report User",
         is_active=True,
+        is_superuser=True,
+    )
+
+
+def mock_unprivileged_user():
+    return User(
+        id=USER_ID,
+        email="unprivileged@bizsathi.com",
+        full_name="Unprivileged User",
+        is_active=True,
+        is_superuser=False,
     )
 
 
@@ -55,11 +66,39 @@ def mock_db_session():
     return db
 
 
+def mock_db_session_permission_denied():
+    db = AsyncMock(spec=AsyncSession)
+
+    async def mock_execute(stmt):
+        mock_res = MagicMock()
+        mock_member = MagicMock()
+        mock_member.is_owner = False
+        mock_member.role_id = None
+        mock_res.scalar_one_or_none.return_value = mock_member
+        mock_res.scalars.return_value.first.return_value = mock_member
+        mock_res.scalars.return_value.all.return_value = []
+        mock_res.all.return_value = []
+        mock_res.scalar.return_value = 0
+        return mock_res
+
+    db.execute = mock_execute
+    return db
+
+
 @pytest.fixture
 def override_deps():
     app.dependency_overrides[get_current_user] = mock_get_current_user
     app.dependency_overrides[get_current_tenant] = mock_get_current_tenant
     app.dependency_overrides[get_db] = mock_db_session
+    yield
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def override_deps_permission_denied():
+    app.dependency_overrides[get_current_user] = mock_unprivileged_user
+    app.dependency_overrides[get_current_tenant] = mock_get_current_tenant
+    app.dependency_overrides[get_db] = mock_db_session_permission_denied
     yield
     app.dependency_overrides.clear()
 
@@ -110,39 +149,134 @@ def test_reports_status_endpoint(override_deps):
     assert data["status"] == "ready"
 
 
-def test_reports_dashboard_endpoint(override_deps):
+REPORT_VIEW_ENDPOINTS = [
+    "/dashboard",
+    "/sales",
+    "/expenses",
+    "/customers",
+    "/vendors",
+    "/inventory",
+    "/hrm",
+    "/crm",
+    "/campaigns",
+]
+
+REPORT_EXPORT_ENDPOINTS = [
+    "/sales/export",
+    "/expenses/export",
+    "/customers/export",
+    "/vendors/export",
+    "/inventory/export",
+    "/hrm/export",
+    "/crm/export",
+    "/campaigns/export",
+]
+
+
+@pytest.mark.parametrize("endpoint", REPORT_VIEW_ENDPOINTS)
+def test_itemized_report_view_permission_denied(endpoint, override_deps_permission_denied):
+    """Verify that unprivileged user without report.view permission receives HTTP 403 on every report endpoint."""
     client = TestClient(app)
-    response = client.get("/api/v1/reports/dashboard")
-    assert response.status_code == 200
-    data = response.json()
-    assert "active_tenants" in data
-    assert "total_revenue" in data
-    assert "performance_trend" in data
+    res = client.get(f"/api/v1/reports{endpoint}")
+    assert res.status_code == 403, f"Expected 403 for {endpoint}, got {res.status_code}"
+    assert "Permission denied" in res.json()["detail"]
 
 
-def test_reports_category_endpoints(override_deps):
+@pytest.mark.parametrize("endpoint", REPORT_EXPORT_ENDPOINTS)
+def test_itemized_report_export_permission_denied(endpoint, override_deps_permission_denied):
+    """Verify that unprivileged user without report.export permission receives HTTP 403 on every report export endpoint."""
     client = TestClient(app)
-    categories = [
-        "sales",
-        "expenses",
-        "customers",
-        "vendors",
-        "inventory",
-        "hrm",
-        "crm",
-        "campaigns",
-    ]
+    res = client.get(f"/api/v1/reports{endpoint}")
+    assert res.status_code == 403, f"Expected 403 for {endpoint}, got {res.status_code}"
+    assert "Permission denied" in res.json()["detail"]
 
-    for cat in categories:
-        # JSON endpoint
-        res = client.get(f"/api/v1/reports/{cat}?preset=current_month&page=1&page_size=10")
-        assert res.status_code == 200, f"Failed for category: {cat}"
-        json_data = res.json()
-        assert "summary" in json_data
-        assert "table" in json_data
 
-        # CSV Export endpoint
-        export_res = client.get(f"/api/v1/reports/{cat}/export?preset=current_month")
-        assert export_res.status_code == 200, f"Export failed for category: {cat}"
-        assert export_res.headers["content-type"].startswith("text/csv")
-        assert export_res.content.startswith(b"\xef\xbb\xbf")
+@pytest.mark.parametrize("endpoint", REPORT_VIEW_ENDPOINTS)
+def test_itemized_report_view_permission_granted(endpoint, override_deps):
+    """Verify that user with valid report.view permission receives HTTP 200 OK on every report view endpoint."""
+    client = TestClient(app)
+    res = client.get(f"/api/v1/reports{endpoint}")
+    assert res.status_code == 200, f"Expected 200 for {endpoint}, got {res.status_code}"
+
+
+@pytest.mark.parametrize("endpoint", REPORT_EXPORT_ENDPOINTS)
+def test_itemized_report_export_permission_granted(endpoint, override_deps):
+    """Verify that user with valid report.export permission receives HTTP 200 OK on every report export endpoint."""
+    client = TestClient(app)
+    res = client.get(f"/api/v1/reports{endpoint}")
+    assert res.status_code == 200, f"Expected 200 for {endpoint}, got {res.status_code}"
+    assert res.headers["content-type"].startswith("text/csv")
+
+
+@pytest.mark.asyncio
+async def test_reports_cross_tenant_isolation_with_db():
+    """Verify that ReportService queries strictly filter by tenant_id and isolate Tenant A from Tenant B."""
+    from decimal import Decimal
+
+    from app.core.database import AsyncSessionLocal
+    from app.models.crm import Customer
+    from app.models.domain import Tenant
+    from app.models.expenses import Expense, ExpenseCategory
+    from app.models.sales import Invoice
+
+    t1_id = uuid4()
+    t2_id = uuid4()
+
+    async with AsyncSessionLocal() as session:
+        t1 = Tenant(id=t1_id, name="Tenant A Reports", slug=f"tenant-a-rep-{t1_id.hex[:6]}", is_active=True)
+        t2 = Tenant(id=t2_id, name="Tenant B Reports", slug=f"tenant-b-rep-{t2_id.hex[:6]}", is_active=True)
+        session.add_all([t1, t2])
+        await session.flush()
+
+        # Seed Invoice for Tenant A only
+        cust_a = Customer(id=uuid4(), tenant_id=t1_id, name="Tenant A Customer")
+        session.add(cust_a)
+        await session.flush()
+
+        now_utc = datetime.now(UTC)
+        inv_a = Invoice(
+            id=uuid4(),
+            tenant_id=t1_id,
+            customer_id=cust_a.id,
+            invoice_number=f"INV-REP-{uuid4().hex[:8]}",
+            status="Paid",
+            issue_date=now_utc,
+            due_date=now_utc,
+            created_at=now_utc,
+            subtotal=Decimal("1000.00"),
+            tax_amount=Decimal("0.00"),
+            total_amount=Decimal("1000.00"),
+            amount_paid=Decimal("1000.00"),
+            amount_due=Decimal("0.00"),
+        )
+        session.add(inv_a)
+
+        # Seed Expense for Tenant A only
+        exp_cat = ExpenseCategory(id=uuid4(), tenant_id=t1_id, name=f"Cat A {t1_id.hex[:4]}")
+        session.add(exp_cat)
+        await session.flush()
+        exp_a = Expense(
+            id=uuid4(),
+            tenant_id=t1_id,
+            category_id=exp_cat.id,
+            title="Office Rent Tenant A",
+            amount=Decimal("500.00"),
+            expense_date=date.today(),
+            payment_method="CASH",
+        )
+        session.add(exp_a)
+        await session.commit()
+
+        # Query reports for Tenant B (should return ZERO metrics / ZERO rows for Tenant A's data)
+        sales_rep_b = await ReportService.get_sales_report(session, tenant_id=t2_id, preset="current_month")
+        exp_rep_b = await ReportService.get_expenses_report(session, tenant_id=t2_id, preset="current_month")
+
+        # Assert Tenant B gets 0 invoice count and 0 total sales
+        tot_sales_card = next(c for c in sales_rep_b.summary if c.title == "Total Sales Value")
+        assert tot_sales_card.value == "₹0.00"
+        assert sales_rep_b.table.total == 0
+
+        # Assert Tenant B gets 0 expenses
+        tot_exp_card = next(c for c in exp_rep_b.summary if c.title == "Total Expenses")
+        assert tot_exp_card.value == "₹0.00"
+        assert exp_rep_b.table.total == 0

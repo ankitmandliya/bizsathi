@@ -291,7 +291,7 @@ class Payroll(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
             return getattr(self, "_payslip_count", 0)
 
     @payslip_count.setter
-    def payslip_count(self, value: int):
+    def payslip_count(self, value: int) -> None:
         self._payslip_count = value
 
 

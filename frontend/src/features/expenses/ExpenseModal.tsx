@@ -57,7 +57,7 @@ export function ExpenseModal({
       setReceiptUrl('');
     }
     setError(null);
-  }, [expenseToEdit, isOpen]);
+  }, [expenseToEdit, isOpen, activeCategories]);
 
   if (!isOpen) return null;
 
@@ -320,7 +320,7 @@ export function ExpenseModal({
               </label>
               <select
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as any)}
+                onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'BANK' | 'UPI' | 'CARD' | 'OTHER')}
                 style={{
                   width: '100%',
                   padding: '10px 12px',

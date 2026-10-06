@@ -20,7 +20,8 @@ def generate_quotation_pdf_html(quotation: Quotation, customer: Customer, busine
     )
 
     issue_date_str = quotation.issue_date.strftime("%d %b %Y") if hasattr(quotation.issue_date, 'strftime') else str(quotation.issue_date)
-    valid_until_str = quotation.valid_until.strftime("%d %b %Y") if getattr(quotation, 'valid_until', None) and hasattr(quotation.valid_until, 'strftime') else (str(quotation.valid_until) if getattr(quotation, 'valid_until', None) else 'N/A')
+    valid_until = getattr(quotation, 'valid_until', None)
+    valid_until_str = valid_until.strftime("%d %b %Y") if (valid_until is not None and hasattr(valid_until, 'strftime')) else 'N/A'
 
     return f"""<!DOCTYPE html>
 <html>
@@ -288,7 +289,8 @@ def generate_payslip_pdf_html(payslip: Payslip, employee: Employee | None, payro
     net_color = "#16a34a" if net_payable >= 0 else "#dc2626"
     emp_name = employee.name if employee else "Employee"
     emp_type = getattr(employee, 'employment_type', 'Full-time') if employee else 'N/A'
-    dept_name = employee.department.name if (employee and getattr(employee, 'department', None)) else ""
+    dept = getattr(employee, 'department', None) if employee else None
+    dept_name = dept.name if (dept is not None and hasattr(dept, 'name')) else ""
     created_str = payslip.created_at.strftime('%d %b %Y') if getattr(payslip, 'created_at', None) else 'N/A'
     working_days = getattr(payslip, 'working_days_in_period', 0)
     unpaid_days = getattr(payslip, 'unpaid_absence_days', 0)

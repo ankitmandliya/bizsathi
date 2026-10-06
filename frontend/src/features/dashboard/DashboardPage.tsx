@@ -11,12 +11,17 @@ import {
   FileSpreadsheet,
   Filter,
   IndianRupee,
+  Plus,
   RefreshCw,
   TrendingUp,
   Users,
   X,
+  Receipt,
+  UserPlus,
+  FileText,
 } from 'lucide-react';
 import apiClient from '../../services/api/client';
+import { useAuth } from '../../features/auth/useAuth';
 import { getErrorMessage } from '../../utils/error';
 
 interface PerformanceItem {
@@ -59,7 +64,7 @@ function ReportModal({ isOpen, onClose, metrics }: { isOpen: boolean; onClose: (
   const handleDownload = () => {
     setDownloading(true);
     setTimeout(() => {
-      const csvContent = `Metric,Value\nActive Tenants,${metrics?.active_tenants || 24}\nTotal Revenue,₹${metrics?.total_revenue?.toLocaleString('en-IN') || '8,42,000'}\nOpen Tasks,${metrics?.open_tasks || 128}\nActive Leads,${metrics?.active_leads || 47}\nOpen Deals,${metrics?.open_deals || 18}\nSubscriptions,${metrics?.subscriptions || 9}\nSystem Health,${metrics?.system_health || '99.9%'}\n`;
+      const csvContent = `Metric,Value\nActive Customers,${metrics?.active_tenants ?? 0}\nTotal Revenue,₹${(metrics?.total_revenue ?? 0).toLocaleString('en-IN')}\nOpen Tasks,${metrics?.open_tasks ?? 0}\nActive Leads,${metrics?.active_leads ?? 0}\nOpen Deals,${metrics?.open_deals ?? 0}\nSubscriptions,${metrics?.subscriptions ?? 0}\nSystem Health,${metrics?.system_health || '100%'}\n`;
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -134,9 +139,9 @@ function ReportModal({ isOpen, onClose, metrics }: { isOpen: boolean; onClose: (
           <div style={{ background: 'var(--panel-alt)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--line)', fontSize: 13 }}>
             <p style={{ fontWeight: 700, margin: '0 0 4px', color: 'var(--text)' }}>Summary Preview</p>
             <p style={{ margin: 0, color: 'var(--muted)', fontSize: 12 }}>
-              • Revenue: ₹{metrics?.total_revenue?.toLocaleString('en-IN') || '8,42,000'}<br />
-              • Customers / Tenants: {metrics?.active_tenants || 24}<br />
-              • Active Deals: {metrics?.open_deals || 18} | Active Leads: {metrics?.active_leads || 47}
+              • Revenue: ₹{(metrics?.total_revenue ?? 0).toLocaleString('en-IN')}<br />
+              • Customers: {metrics?.active_tenants ?? 0}<br />
+              • Active Deals: {metrics?.open_deals ?? 0} | Active Leads: {metrics?.active_leads ?? 0}
             </p>
           </div>
         </div>
@@ -153,6 +158,7 @@ function ReportModal({ isOpen, onClose, metrics }: { isOpen: boolean; onClose: (
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -192,18 +198,18 @@ export default function DashboardPage() {
     }
   };
 
-  const currentRevenue = metrics?.total_revenue || 842000;
-  const currentTenants = metrics?.active_tenants || 24;
-  const currentTasks = metrics?.open_tasks || 128;
-  const currentLeads = metrics?.active_leads || 47;
-  const currentDeals = metrics?.open_deals || 18;
-  const currentSubs = metrics?.subscriptions || 9;
+  const currentRevenue = metrics?.total_revenue ?? 0;
+  const currentTenants = metrics?.active_tenants ?? 0;
+  const currentTasks = metrics?.open_tasks ?? 0;
+  const currentLeads = metrics?.active_leads ?? 0;
+  const currentDeals = metrics?.open_deals ?? 0;
+  const currentSubs = metrics?.subscriptions ?? 0;
 
   const mainStats = [
     {
-      label: 'Active Tenants',
+      label: 'Customers',
       value: currentTenants.toString(),
-      trend: metrics?.active_tenants_trend || '+3 this month',
+      trend: metrics?.active_tenants_trend || 'Active Accounts',
       up: true,
       icon: Building2,
       iconBg: '#eff6ff',
@@ -213,97 +219,86 @@ export default function DashboardPage() {
     {
       label: 'Total Revenue',
       value: `₹${currentRevenue.toLocaleString('en-IN')}`,
-      trend: metrics?.revenue_trend || '+12.4% vs last month',
+      trend: metrics?.revenue_trend || 'Gross Revenue',
       up: true,
       icon: IndianRupee,
       iconBg: '#dcfce7',
       iconColor: '#16a34a',
-      link: '/invoices',
+      link: '/sales/invoices',
     },
     {
       label: 'Open Tasks',
       value: currentTasks.toString(),
-      trend: metrics?.tasks_trend || '14 overdue',
+      trend: metrics?.tasks_trend || 'Pending Items',
       up: false,
       icon: CheckCircle2,
       iconBg: '#fef3c7',
       iconColor: '#d97706',
-      link: '/leave',
+      link: '/hrm/attendance',
     },
     {
-      label: 'System Health',
-      value: metrics?.system_health || '99.9%',
-      trend: metrics?.system_health_status || 'All systems nominal',
+      label: 'Operational Health',
+      value: metrics?.system_health || '100%',
+      trend: metrics?.system_health_status || 'All modules active',
       up: true,
       icon: Activity,
       iconBg: '#f3e8ff',
       iconColor: '#9333ea',
-      link: '/my-dashboard',
+      link: '/reports',
     },
   ];
 
   const trendData = metrics?.performance_trend || [
-    { day: 'Day 1', date: 'Day 1', revenue: 33680, height: 40 },
-    { day: 'Day 2', date: 'Day 2', revenue: 54730, height: 65 },
-    { day: 'Day 3', date: 'Day 3', revenue: 67360, height: 80 },
-    { day: 'Day 4', date: 'Day 4', revenue: 46310, height: 55 },
-    { day: 'Day 5', date: 'Day 5', revenue: 79990, height: 95 },
-    { day: 'Day 6', date: 'Day 6', revenue: 58940, height: 70 },
-    { day: 'Day 7', date: 'Day 7', revenue: 71570, height: 85 },
-    { day: 'Day 8', date: 'Day 8', revenue: 84200, height: 100 },
-    { day: 'Day 9', date: 'Day 9', revenue: 54730, height: 65 },
-    { day: 'Day 10 (Today)', date: 'Day 10', revenue: 71570, height: 85 },
+    { day: 'Day 1', date: 'Day 1', revenue: 0, height: 10 },
+    { day: 'Day 2', date: 'Day 2', revenue: 0, height: 10 },
+    { day: 'Day 3', date: 'Day 3', revenue: 0, height: 10 },
+    { day: 'Day 4', date: 'Day 4', revenue: 0, height: 10 },
+    { day: 'Day 5', date: 'Day 5', revenue: 0, height: 10 },
   ];
 
-  const activitiesList = metrics?.recent_activities || [
-    { id: '1', text: 'Customer onboarding completed -Acme Corp', time: '2m ago', color: '#16a34a', category: 'customer' },
-    { id: '2', text: 'Payroll batch queued for review', time: '18m ago', color: '#d97706', category: 'payroll' },
-    { id: '3', text: 'Tenant subscription renewed -Globex Inc', time: '1h ago', color: '#2563eb', category: 'subscription' },
-    { id: '4', text: 'New lead created -Sarah Johnson', time: '2h ago', color: '#9333ea', category: 'lead' },
-    { id: '5', text: 'Deal closed -Q4 Enterprise License (₹5.4L)', time: '3h ago', color: '#16a34a', category: 'deal' },
-  ];
+  const activitiesList = metrics?.recent_activities || [];
+
+  const ownerName = user?.full_name || 'Business Owner';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: 1240, margin: '0 auto' }}>
       {/* Page Heading */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.3px', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.3px', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #2563eb, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <BarChart3 size={18} color="#fff" />
             </div>
-            Business Dashboard
+            Welcome back, {ownerName}!
           </h1>
           <p style={{ color: 'var(--muted)', marginTop: '4px', fontSize: '13.5px' }}>
-            Monitor key metrics, performance trends, and real-time workspace activity.
+            Here's what's happening with your business today.
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* Period selector */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Filter size={14} style={{ position: 'absolute', left: 12, color: 'var(--muted)' }} />
-            <select
-              value={period}
-              onChange={e => setPeriod(e.target.value)}
-              style={{
-                padding: '8px 14px 8px 32px',
-                borderRadius: 10,
-                border: '1.5px solid var(--line)',
-                background: 'var(--bg-card)',
-                color: 'var(--text)',
-                fontSize: 13,
-                fontWeight: 600,
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="7">Last 7 Days</option>
-              <option value="30">Last 30 Days</option>
-              <option value="90">Last 90 Days</option>
-              <option value="365">This Year</option>
-            </select>
-          </div>
+          {/* Quick Actions Row */}
+          <button
+            type="button"
+            onClick={() => navigate('/sales/invoices')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: 8, background: 'var(--primary-dim)', color: 'var(--primary)', border: '1px solid var(--primary)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+          >
+            <FileText size={14} /> + Invoice
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/customers')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+          >
+            <UserPlus size={14} /> + Customer
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/expenses')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: 8, background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+          >
+            <Receipt size={14} /> + Expense
+          </button>
 
           <button
             type="button"

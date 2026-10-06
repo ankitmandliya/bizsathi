@@ -11,14 +11,10 @@ from app.models.hrm import (
     Department,
     Designation,
     Employee,
-    Holiday,
     LeaveRequest,
-    LeaveType,
     Payroll,
-    Payslip,
     SalaryAdvance,
     SalaryStructure,
-    WorkSchedule,
 )
 from app.schemas.hrm import (
     EmployeeCreate,

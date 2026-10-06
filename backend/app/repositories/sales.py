@@ -165,7 +165,7 @@ class InvoiceRepository(TenantRepository[Invoice]):
     async def create(self, invoice: Invoice) -> Invoice:
         self.session.add(invoice)
         await self.session.flush()
-        await self.session.refresh(invoice)
+        await self.session.refresh(invoice, ["items"])
         return invoice
 
     async def soft_delete(self, tenant_id: UUID, invoice_id: UUID) -> bool:

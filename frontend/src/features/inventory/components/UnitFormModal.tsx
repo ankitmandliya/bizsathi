@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Scale } from 'lucide-react';
 import { Unit, UnitCreateInput, UnitUpdateInput } from '../types/inventory';
+import { getErrorMessage } from '../../../utils/error';
 
 interface UnitFormModalProps {
   isOpen: boolean;
@@ -45,8 +46,8 @@ export const UnitFormModal: React.FC<UnitFormModalProps> = ({
     try {
       await onSubmit({ name: name.trim(), short_name: shortName.trim() || undefined });
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || err.message || 'Failed to save unit');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

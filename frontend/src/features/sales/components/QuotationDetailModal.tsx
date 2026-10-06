@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Download, ExternalLink, FileText } from 'lucide-react';
+import { ArrowRight, Download, ExternalLink } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { Quotation, salesApi } from '../services/salesApi';

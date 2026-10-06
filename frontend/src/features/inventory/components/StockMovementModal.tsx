@@ -3,13 +3,14 @@ import { X, ArrowDownRight, ArrowUpRight, Sliders, AlertCircle } from 'lucide-re
 import { Product, StockInInput, StockOutInput, StockAdjustmentInput } from '../types/inventory';
 import { vendorApi } from '../../vendors/services/vendorApi';
 import { Vendor } from '../../vendors/types/vendor';
+import { getErrorMessage } from '../../../utils/error';
 
 interface StockMovementModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: 'IN' | 'OUT' | 'ADJUSTMENT';
   products: Product[];
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: StockInInput | StockOutInput | StockAdjustmentInput) => Promise<void>;
   selectedProduct?: Product | null;
 }
 
@@ -64,7 +65,7 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
       setUnitCost(activeProduct.purchase_price);
       setPhysicalCount(activeProduct.current_stock);
     }
-  }, [productId]);
+  }, [productId, activeProduct]);
 
   if (!isOpen) return null;
 
@@ -122,8 +123,8 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
         await onSubmit(payload);
       }
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || err.message || 'Failed to record stock movement');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -18,7 +18,6 @@ export const AuditLogButton: React.FC<AuditLogButtonProps> = ({
   entityTypes,
   entityId,
   buttonText = 'Audit Log',
-  variant = 'outline',
   size = 'sm',
   className = '',
   title = 'Audit Log',
@@ -28,7 +27,7 @@ export const AuditLogButton: React.FC<AuditLogButtonProps> = ({
   const auth = useAuth();
 
   // Access Control (Section 5): Only render if user has audit permission
-  const user = auth?.user as any;
+  const user = auth?.user as { is_superuser?: boolean; role?: string; permissions?: string[] } | null;
   const hasAuditPermission =
     !user ||
     user.is_superuser ||

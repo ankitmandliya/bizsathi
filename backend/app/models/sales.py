@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TenantScopedMixin, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.crm import Customer
 
 
 class SalesSequence(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):

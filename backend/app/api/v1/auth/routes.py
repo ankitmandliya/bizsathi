@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_tenant, get_current_user
 from app.core.database import get_db
+from app.core.rate_limit import check_rate_limit
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -16,12 +17,14 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models.domain import Session, Tenant, TenantMember, User
+from app.models.domain import Role, Session, Tenant, TenantMember, User
 from app.schemas.auth import (
     ChangePasswordRequest,
+    CompleteSetupRequest,
     ForgotPasswordRequest,
     LoginRequest,
     RefreshTokenRequest,
+    RegisterBusinessRequest,
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
@@ -29,6 +32,7 @@ from app.schemas.auth import (
 )
 from app.services.audit import get_client_ip, get_user_agent, log_audit_event
 from app.services.crm import seed_default_pipeline_stages
+from app.services.tenant import create_tenant_and_owner
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -202,10 +206,96 @@ async def register(
         full_name=user.full_name,
         is_active=user.is_active,
         is_verified=user.is_verified,
+        is_platform_admin=user.is_platform_admin,
         tenant_id=tenant.id,
         roles=["owner"],
         permissions=["*"],
     )
+
+
+@router.post("/register-business", response_model=TokenResponse)
+async def register_business(
+    body: RegisterBusinessRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> TokenResponse:
+    await check_rate_limit(request, key_prefix="register_business", max_requests=5, window_seconds=3600)
+
+    ip_addr = get_client_ip(request)
+    u_agent = get_user_agent(request)
+
+    tenant, user, _ = await create_tenant_and_owner(
+        db,
+        business_name=body.business_name,
+        owner_name=body.owner_name,
+        owner_email=body.owner_email,
+        created_via="SELF_SIGNUP",
+        password=body.password,
+        ip_address=ip_addr,
+        user_agent=u_agent,
+    )
+
+    access_token = create_access_token(subject=str(user.id))
+    refresh_token = create_refresh_token(subject=str(user.id))
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+    )
+
+
+@router.post("/complete-setup")
+async def complete_setup(
+    body: CompleteSetupRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    ip_addr = get_client_ip(request)
+    u_agent = get_user_agent(request)
+
+    token_key = f"invite_{body.token}"
+    stmt = select(Session).where(
+        Session.token == token_key, Session.expires_at > datetime.now(UTC)
+    )
+    res = await db.execute(stmt)
+    sess = res.scalar_one_or_none()
+
+    if not sess:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired invitation token",
+        )
+
+    user_stmt = select(User).where(User.id == sess.user_id)
+    user_res = await db.execute(user_stmt)
+    user = user_res.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User associated with token not found",
+        )
+
+    user.password_hash = hash_password(body.password)
+    user.is_verified = True
+    await db.execute(delete(Session).where(Session.token == token_key))
+    await db.commit()
+
+    await log_audit_event(
+        db,
+        tenant_id=DEFAULT_TENANT_ID,  # type: ignore[arg-type]
+        user_id=user.id,
+        actor_name=user.full_name or user.email,
+        action="user.complete_setup.success",
+        entity_type="user",
+        entity_label=user.email,
+        details={"email": user.email},
+        ip_address=ip_addr,
+        user_agent=u_agent,
+    )
+
+    return {"message": "Account setup completed successfully"}
 
 
 @router.post("/forgot-password")
@@ -384,16 +474,61 @@ async def refresh_tokens(body: RefreshTokenRequest) -> TokenResponse:
 async def get_me(
     current_user: Annotated[User, Depends(get_current_user)],
     current_tenant_id: Annotated[Any, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
 ) -> UserProfileResponse:
+    is_owner = False
+    if current_user.is_platform_admin or getattr(current_user, "is_superuser", False):
+        is_owner = True
+    elif current_tenant_id:
+        stmt = select(TenantMember).where(
+            TenantMember.user_id == current_user.id,
+            TenantMember.tenant_id == current_tenant_id,
+            TenantMember.status == "active",
+        )
+        res = await db.execute(stmt)
+        member = res.scalars().first()
+        if member and member.is_owner:
+            is_owner = True
+        elif member and member.role_id:
+            role_res = await db.execute(select(Role).where(Role.id == member.role_id))
+            role = role_res.scalars().first()
+            if role and role.name.lower() in ("admin", "administrator", "owner"):
+                is_owner = True
+
+    tenant_name: str | None = None
+    target_tenant_id = current_tenant_id
+
+    if not target_tenant_id and not current_user.is_platform_admin:
+        tm_stmt = select(TenantMember).where(
+            TenantMember.user_id == current_user.id,
+            TenantMember.status == "active",
+        )
+        tm_res = await db.execute(tm_stmt)
+        tm_obj = tm_res.scalars().first()
+        if tm_obj:
+            target_tenant_id = tm_obj.tenant_id
+
+    if target_tenant_id:
+        t_stmt = select(Tenant).where(Tenant.id == target_tenant_id)
+        t_res = await db.execute(t_stmt)
+        tenant_obj = t_res.scalar_one_or_none()
+        if tenant_obj:
+            tenant_name = tenant_obj.name
+
+    roles = ["owner"] if is_owner else ["member"]
+
     return UserProfileResponse(
         id=current_user.id,
         email=current_user.email,
         full_name=current_user.full_name,
         is_active=current_user.is_active,
         is_verified=current_user.is_verified,
-        tenant_id=current_tenant_id,
-        roles=["member"],
-        permissions=["*"],
+        is_platform_admin=current_user.is_platform_admin,
+        is_owner=is_owner,
+        tenant_id=target_tenant_id,
+        tenant_name=tenant_name,
+        roles=roles,
+        permissions=["*"] if is_owner else ["member"],
     )
 
 

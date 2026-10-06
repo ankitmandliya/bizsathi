@@ -184,7 +184,7 @@ export function PayrollPage() {
       }
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, []);
+  }, [selectedPayroll]);
 
   useEffect(() => { fetchPayrolls(); }, [fetchPayrolls]);
 

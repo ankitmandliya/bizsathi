@@ -24,7 +24,7 @@ def build_sales_mock_db():
     async def mock_flush() -> None:
         pass
 
-    async def mock_refresh(obj: object) -> None:
+    async def mock_refresh(obj: object, *args, **kwargs) -> None:
         pass
 
     async def mock_execute(stmt: object) -> MagicMock:

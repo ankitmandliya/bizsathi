@@ -146,8 +146,8 @@ export const crmApi = {
   getPipelineStages: async (): Promise<PipelineStage[]> => {
     try {
       const response = await apiClient.get<PipelineStage[]>('/api/v1/crm/pipeline-stages');
-      if (response.data && response.data.length > 0) return response.data;
-      return INITIAL_DEMO_STAGES;
+      if (response.data) return response.data;
+      return [];
     } catch {
       return INITIAL_DEMO_STAGES;
     }
@@ -164,7 +164,7 @@ export const crmApi = {
   }): Promise<PaginatedLeads> => {
     try {
       const response = await apiClient.get<PaginatedLeads>('/api/v1/crm/leads', { params });
-      if (response.data && response.data.items && response.data.items.length > 0) return response.data;
+      if (response.data) return response.data;
     } catch {
       // fallback to demo leads
     }
@@ -305,7 +305,7 @@ export const crmApi = {
   }): Promise<PaginatedDeals> => {
     try {
       const response = await apiClient.get<PaginatedDeals>('/api/v1/crm/deals', { params });
-      if (response.data && response.data.items && response.data.items.length > 0) return response.data;
+      if (response.data) return response.data;
     } catch {
       // fallback
     }
@@ -387,8 +387,8 @@ export const crmApi = {
   }): Promise<Activity[]> => {
     try {
       const response = await apiClient.get<Activity[]>('/api/v1/crm/activities', { params });
-      if (response.data && response.data.length > 0) return response.data;
-      return INITIAL_DEMO_ACTIVITIES;
+      if (response.data) return response.data;
+      return [];
     } catch {
       return INITIAL_DEMO_ACTIVITIES;
     }

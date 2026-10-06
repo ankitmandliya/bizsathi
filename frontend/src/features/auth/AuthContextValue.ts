@@ -4,7 +4,12 @@ export type UserSession = {
   id: string;
   email: string;
   full_name: string;
+  is_platform_admin?: boolean;
+  is_owner?: boolean;
   tenant_id?: string;
+  tenant_name?: string;
+  roles?: string[];
+  permissions?: string[];
 };
 
 export type AuthContextType = {

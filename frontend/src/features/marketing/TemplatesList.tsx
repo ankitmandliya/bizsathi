@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Smartphone, Mail, CheckCircle, Clock, AlertTriangle, Send } from 'lucide-react';
+import { Plus, Edit2, Trash2, Smartphone, Mail } from 'lucide-react';
 import { Template, marketingApi } from '../../services/marketingApi';
 import { TemplateEditorModal } from './TemplateEditorModal';
 

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, Package, AlertCircle } from 'lucide-react';
-import { ProductCategory, ProductCreateInput, ProductUpdateInput, Unit } from '../types/inventory';
+import { Product, ProductCategory, ProductCreateInput, ProductUpdateInput, Unit } from '../types/inventory';
+import { getErrorMessage } from '../../../utils/error';
 
 interface ProductFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: ProductCreateInput | ProductUpdateInput) => Promise<void>;
-  initialData?: any;
+  initialData?: Product | null;
   categories: ProductCategory[];
   units: Unit[];
   isEdit?: boolean;
@@ -85,7 +86,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     setLoading(true);
     try {
-      const payload: any = {
+      const payload: ProductCreateInput & { opening_stock?: number } = {
         name: formData.name.trim(),
         sku: formData.sku.trim(),
         unit_id: formData.unit_id,
@@ -102,8 +103,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
       await onSubmit(payload);
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || err.message || 'Failed to save product');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

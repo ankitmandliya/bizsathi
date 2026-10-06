@@ -6,12 +6,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datetime import date, timedelta
 from decimal import Decimal
-import random
 
 from sqlalchemy import select
 from app.core.database import AsyncSessionLocal
 from app.models.domain import Tenant, User
-from app.models.expenses import Expense, ExpenseCategory
+from app.models.expenses import Expense
 from app.services.expenses import ExpenseService
 
 

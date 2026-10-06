@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Layers } from 'lucide-react';
 import { ProductCategory, ProductCategoryCreateInput, ProductCategoryUpdateInput } from '../types/inventory';
+import { getErrorMessage } from '../../../utils/error';
 
 interface CategoryFormModalProps {
   isOpen: boolean;
@@ -45,8 +46,8 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     try {
       await onSubmit({ name: name.trim(), description: description.trim() || undefined });
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || err.message || 'Failed to save category');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

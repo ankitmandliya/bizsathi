@@ -14,6 +14,18 @@ class RegisterRequest(BaseModel):
     tenant_name: str | None = Field(default=None)
 
 
+class RegisterBusinessRequest(BaseModel):
+    business_name: str = Field(..., min_length=2)
+    owner_name: str = Field(..., min_length=2)
+    owner_email: EmailStr
+    password: str = Field(..., min_length=8)
+
+
+class CompleteSetupRequest(BaseModel):
+    token: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=8)
+
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
@@ -44,6 +56,9 @@ class UserProfileResponse(BaseModel):
     full_name: str
     is_active: bool
     is_verified: bool = False
+    is_platform_admin: bool = False
+    is_owner: bool = False
     tenant_id: UUID | None = None
+    tenant_name: str | None = None
     roles: list[str] = Field(default_factory=list)
     permissions: list[str] = Field(default_factory=list)

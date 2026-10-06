@@ -20,14 +20,12 @@ from app.schemas.expenses import (
     ExpenseUpdate,
     PaginatedExpensesResponse,
 )
+from app.services.audit import get_client_ip, get_user_agent
 from app.services.expenses import ExpenseService, to_expense_response
 
 router = APIRouter(tags=["expenses"])
 categories_router = APIRouter(prefix="/expense-categories", tags=["expense-categories"])
 expenses_router = APIRouter(prefix="/expenses", tags=["expenses"])
-
-
-from app.services.audit import get_client_ip, get_user_agent
 
 
 # ---------------------------------------------------------------------------

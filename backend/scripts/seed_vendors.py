@@ -8,7 +8,6 @@ from decimal import Decimal
 from sqlalchemy import select
 from app.core.database import AsyncSessionLocal
 from app.models.domain import Tenant, User
-from app.models.vendors import Vendor
 from app.schemas.vendors import VendorCreate
 from app.services.vendors import VendorService
 

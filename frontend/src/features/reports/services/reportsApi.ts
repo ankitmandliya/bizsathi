@@ -54,7 +54,9 @@ export const reportsApi = {
   },
 
   exportReportCsv: async (category: ReportCategory, params?: ReportFilterParams): Promise<void> => {
-    const { page, page_size, ...exportParams } = params || {};
+    const exportParams = { ...params };
+    delete exportParams.page;
+    delete exportParams.page_size;
     const res = await apiClient.get(`/api/v1/reports/${category}/export`, {
       params: exportParams,
       responseType: 'blob',

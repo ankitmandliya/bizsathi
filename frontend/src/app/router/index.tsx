@@ -21,17 +21,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function ModulePlaceholderPage({ name }: { name: string }) {
-  return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold capitalize text-slate-800 dark:text-slate-100">{name} Module</h2>
-      <p className="text-sm text-slate-500 mt-2">
-        Architecture foundation established. Production business logic ready for implementation phase.
-      </p>
-    </div>
-  );
-}
-
 import { InvoicesListPage } from '../../features/sales/pages/InvoicesListPage';
 import { InvoiceDetailPage } from '../../features/sales/pages/InvoiceDetailPage';
 import { QuotationsListPage } from '../../features/sales/pages/QuotationsListPage';
@@ -61,14 +50,23 @@ function DynamicDashboardPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    // Business Owners & Admins always land on Business Dashboard
+    if (user?.is_platform_admin || user?.is_owner || user?.roles?.includes('owner') || user?.roles?.includes('admin')) {
+      setIsPlainEmployee(false);
+      setChecking(false);
+      return;
+    }
+
     hrmApi.getEmployees({ limit: 2 })
       .then(res => {
         if (res && res.total === 1 && res.items[0]?.email?.toLowerCase() === user?.email?.toLowerCase()) {
           setIsPlainEmployee(true);
+        } else {
+          setIsPlainEmployee(false);
         }
       })
       .catch(() => {
-        setIsPlainEmployee(true);
+        setIsPlainEmployee(false);
       })
       .finally(() => setChecking(false));
   }, [user]);
@@ -84,13 +82,56 @@ function DynamicDashboardPage() {
   return <DashboardPage />;
 }
 
+import RegisterBusinessPage from '../../features/auth/RegisterBusinessPage';
+import CompleteSetupPage from '../../features/auth/CompleteSetupPage';
+import { AdminGuard } from '../../features/admin/AdminGuard';
+import { AdminLayout } from '../../features/admin/AdminLayout';
+import { AdminDashboardPage } from '../../features/admin/pages/AdminDashboardPage';
+import { AdminBusinessesPage } from '../../features/admin/pages/AdminBusinessesPage';
+import { AdminBusinessDetailPage } from '../../features/admin/pages/AdminBusinessDetailPage';
+import { AdminAuditLogsPage } from '../../features/admin/pages/AdminAuditLogsPage';
+import { AdminSettingsPage } from '../../features/admin/pages/AdminSettingsPage';
+
+import { AdminPlansPage } from '../../features/admin/pages/AdminPlansPage';
+import { AdminSubscriptionsPage } from '../../features/admin/pages/AdminSubscriptionsPage';
+import { AdminBillingPage } from '../../features/admin/pages/AdminBillingPage';
+import { AdminUsagePage } from '../../features/admin/pages/AdminUsagePage';
+import { AdminCouponsPage } from '../../features/admin/pages/AdminCouponsPage';
+import { SubscriptionsPage } from '../../features/subscriptions/SubscriptionsPage';
+
 export default function AppRouter() {
   return (
     <Routes>
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register-business" element={<RegisterBusinessPage />} />
+        <Route path="/signup" element={<RegisterBusinessPage />} />
+        <Route path="/complete-setup" element={<CompleteSetupPage />} />
       </Route>
 
+      {/* Super Admin Console Routes */}
+      <Route
+        path="/admin"
+        element={
+          <AdminGuard>
+            <AdminLayout />
+          </AdminGuard>
+        }
+      >
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route path="businesses" element={<AdminBusinessesPage />} />
+        <Route path="businesses/:id" element={<AdminBusinessDetailPage />} />
+        <Route path="plans" element={<AdminPlansPage />} />
+        <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+        <Route path="billing" element={<AdminBillingPage />} />
+        <Route path="usage" element={<AdminUsagePage />} />
+        <Route path="coupons" element={<AdminCouponsPage />} />
+        <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
+      </Route>
+
+      {/* Tenant Workspace Routes */}
       <Route
         element={
           <AuthGuard>
@@ -125,7 +166,7 @@ export default function AppRouter() {
         <Route path="/expenses/categories" element={<ExpensesPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
 
-        <Route path="/subscriptions" element={<ModulePlaceholderPage name="Subscriptions" />} />
+        <Route path="/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/marketing" element={<MarketingPage />} />
         <Route path="/communication" element={<MarketingPage />} />

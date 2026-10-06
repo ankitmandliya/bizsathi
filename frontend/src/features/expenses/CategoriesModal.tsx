@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Edit2, Trash2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { ExpenseCategory, expensesApi } from './services/expensesApi';
 import { getErrorMessage } from '../../utils/error';
 

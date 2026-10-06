@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Upload, Download, CheckCircle2, AlertTriangle, FileText } from 'lucide-react';
 import { inventoryApi } from '../services/inventoryApi';
+import { getErrorMessage } from '../../../utils/error';
 
 interface ProductImportModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, 
   const handleDownloadTemplate = async () => {
     try {
       await inventoryApi.downloadImportTemplate();
-    } catch (err: any) {
+    } catch {
       alert('Failed to download sample import template.');
     }
   };
@@ -51,8 +52,8 @@ export const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, 
       const res = await inventoryApi.importProducts(file);
       setSummary(res);
       onSuccess();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to import products file.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

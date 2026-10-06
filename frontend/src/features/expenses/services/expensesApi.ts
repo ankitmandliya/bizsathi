@@ -114,7 +114,9 @@ export const expensesApi = {
   },
 
   getExpenseSummary: async (filters: ExpenseFilters = {}): Promise<ExpenseSummaryResponse> => {
-    const { page, page_size, ...summaryParams } = filters;
+    const summaryParams = { ...filters };
+    delete summaryParams.page;
+    delete summaryParams.page_size;
     const response = await apiClient.get('/api/v1/expenses/summary', { params: summaryParams });
     return response.data;
   },

@@ -123,7 +123,7 @@ def compute_changes(before: Any, after: Any, tracked_fields: list[str]) -> dict[
 async def log_audit_event(
     db: AsyncSession,
     *,
-    tenant_id: UUID,
+    tenant_id: UUID | None = None,
     user_id: UUID | None,
     action: str,
     entity_type: str,

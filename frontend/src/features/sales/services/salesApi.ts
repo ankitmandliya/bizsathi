@@ -232,7 +232,7 @@ export const salesApi = {
   getQuotations: async (params?: { customer_id?: string; status?: string; page?: number; limit?: number }) => {
     try {
       const res = await apiClient.get<{ items: Quotation[]; total: number; page: number; limit: number }>('/api/v1/sales/quotations', { params });
-      if (res.data && res.data.items && res.data.items.length > 0) return res.data;
+      if (res.data) return res.data;
     } catch {
       // fallback
     }
@@ -324,7 +324,7 @@ export const salesApi = {
   getInvoices: async (params?: { customer_id?: string; status?: string; page?: number; limit?: number }) => {
     try {
       const res = await apiClient.get<{ items: Invoice[]; total: number; page: number; limit: number }>('/api/v1/sales/invoices', { params });
-      if (res.data && res.data.items && res.data.items.length > 0) return res.data;
+      if (res.data) return res.data;
     } catch {
       // fallback
     }
@@ -428,7 +428,7 @@ export const salesApi = {
   getPayments: async (params?: { invoice_id?: string; customer_id?: string }) => {
     try {
       const res = await apiClient.get<Payment[]>('/api/v1/sales/payments', { params });
-      if (res.data && res.data.length > 0) return res.data;
+      if (res.data) return res.data;
     } catch {
       // fallback
     }

@@ -1,7 +1,7 @@
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +9,7 @@ from app.api.deps import get_current_tenant, get_current_user
 from app.core.database import get_db
 from app.models.domain import Tenant, TenantMember, User
 from app.schemas.tenant import TenantResponse, TenantSettingsUpdate
+from app.services.audit import compute_changes, get_client_ip, get_user_agent, log_audit_event
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])
 
@@ -41,9 +42,6 @@ async def get_current_tenant_info(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
     return TenantResponse.model_validate(tenant)
 
-
-from fastapi import Request
-from app.services.audit import compute_changes, get_client_ip, get_user_agent, log_audit_event
 
 @router.put("/settings/channels", response_model=TenantResponse)
 async def update_tenant_channels_settings(
@@ -120,4 +118,76 @@ async def get_tenant_by_id(
             detail="Tenant not found or access denied",
         )
     return TenantResponse.model_validate(tenant)
+
+
+@router.get("/usage/metrics")
+@router.get("/usage")
+async def get_tenant_usage(
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    from app.services.usage_service import UsageService
+
+    metrics = await UsageService.get_tenant_usage_metrics(db, tenant_id)
+    return metrics
+
+
+@router.post("/members")
+async def add_tenant_member(
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    tenant_id: Annotated[UUID, Depends(get_current_tenant)],
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    from app.core.security import hash_password
+    from app.services.usage_service import UsageService
+
+    body = await request.json()
+    email = body.get("email", "").strip().lower()
+    full_name = body.get("full_name", email)
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    stmt = select(User).where(User.email == email)
+    res = await db.execute(stmt)
+    user = res.scalar_one_or_none()
+
+    # Enforce user limit check before adding new user
+    await UsageService.check_tenant_user_limit(db, tenant_id, target_user_id=user.id if user else None)
+
+    if not user:
+        user = User(
+            email=email,
+            password_hash=hash_password("Password123!"),
+            full_name=full_name,
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(user)
+        await db.flush()
+
+    tm_stmt = select(TenantMember).where(
+        TenantMember.tenant_id == tenant_id, TenantMember.user_id == user.id
+    )
+    tm_res = await db.execute(tm_stmt)
+    member = tm_res.scalar_one_or_none()
+
+    if not member:
+        member = TenantMember(
+            tenant_id=tenant_id,
+            user_id=user.id,
+            is_owner=False,
+            status="active",
+        )
+        db.add(member)
+        await db.commit()
+
+    return {
+        "status": "success",
+        "member_id": str(member.id),
+        "user_id": str(user.id),
+        "email": user.email,
+    }
 

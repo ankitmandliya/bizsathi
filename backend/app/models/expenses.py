@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TenantScopedMixin, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.domain import User
 
 
 class ExpenseCategory(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
@@ -34,7 +35,7 @@ class Expense(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    expense_date: Mapped[datetime] = mapped_column(Date, nullable=False, index=True)
+    expense_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     payment_method: Mapped[str] = mapped_column(String(50), nullable=False, default="CASH", index=True)
     vendor_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     reference_number: Mapped[str | None] = mapped_column(String(255), nullable=True)

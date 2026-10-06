@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Clock, LogIn, LogOut, CheckCircle2, AlertCircle, Moon, Coffee,
-  Edit2, Calendar as CalendarIcon, List, ChevronLeft, ChevronRight,
-  User, Filter
+  Edit2, Calendar as CalendarIcon, List, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { hrmApi, Attendance, Employee, Department, WorkSchedule } from '../services/hrmApi';
 import { getErrorMessage } from '../../../utils/error';

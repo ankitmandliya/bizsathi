@@ -1,1 +1,2 @@
-export const subscriptionsModule = { name: 'subscriptions', status: 'foundation_ready' };
+export { SubscriptionsPage } from './SubscriptionsPage';
+export const subscriptionsModule = { name: 'subscriptions', status: 'live' };

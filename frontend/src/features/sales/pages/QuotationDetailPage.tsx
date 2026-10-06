@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Download, FileText, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, FileText } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Quotation, salesApi } from '../services/salesApi';
 import { crmApi } from '../../crm/services/crmApi';

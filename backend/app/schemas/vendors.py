@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -85,4 +85,4 @@ class VendorImportSummaryResponse(BaseModel):
     imported: int
     skipped_duplicates: int
     failed: int
-    errors: list[dict]
+    errors: list[dict[str, Any]]

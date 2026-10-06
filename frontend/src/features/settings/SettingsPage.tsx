@@ -13,7 +13,6 @@ import {
   History,
   MessageSquare,
   Mail,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { hrmApi, Holiday, LeaveType } from '../hrm/services/hrmApi';
 import { getErrorMessage } from '../../utils/error';
@@ -95,6 +94,7 @@ export function SettingsPage() {
         if (channels.name) {
           setBusinessName(channels.name);
           localStorage.setItem('bizsathi.business_name', channels.name);
+          window.dispatchEvent(new Event('business_name_updated'));
         }
         setLogoUrl(channels.logo_url || '');
         setWhatsappEnabled(channels.whatsapp_enabled ?? false);

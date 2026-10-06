@@ -100,7 +100,7 @@ function formatFieldName(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function renderValue(val: any): string {
+function renderValue(val: unknown): string {
   if (val === null || val === undefined) return 'None';
   if (typeof val === 'boolean') return val ? 'Yes' : 'No';
   if (typeof val === 'object') return JSON.stringify(val);
@@ -156,8 +156,8 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
         setPage(res.page);
         setTotalPages(res.total_pages);
         setTotalCount(res.total);
-      } catch (err: any) {
-        if (err.response?.status === 403) {
+      } catch (err: unknown) {
+        if ((err as { response?: { status?: number } })?.response?.status === 403) {
           setError('Access Denied: You require audit.view permissions to view Audit Logs.');
         } else {
           setError('Failed to load audit logs. Please try again.');

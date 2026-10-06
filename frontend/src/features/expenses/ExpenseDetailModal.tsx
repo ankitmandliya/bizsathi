@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, CreditCard, Tag, User, FileText, Download, IndianRupee } from 'lucide-react';
+import { X, Download, IndianRupee } from 'lucide-react';
 import { Expense } from './services/expensesApi';
 
 interface ExpenseDetailModalProps {

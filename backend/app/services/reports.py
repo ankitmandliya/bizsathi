@@ -12,10 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.crm import Customer, Deal, Lead
 from app.models.expenses import Expense, ExpenseCategory
-from app.models.hrm import Attendance, Department, Designation, Employee, LeaveRequest, Payroll, Payslip, SalaryAdvance
-from app.models.inventory import Product, ProductCategory, StockMovement, Unit
-from app.models.marketing import Campaign, CampaignRecipient, Template
-from app.models.sales import Invoice, Quotation, Payment
+from app.models.hrm import Attendance, Employee, LeaveRequest, Payslip, SalaryAdvance
+from app.models.inventory import Product, StockMovement
+from app.models.marketing import Campaign, CampaignRecipient
+from app.models.sales import Invoice
 from app.models.vendors import Vendor
 from app.schemas.reports import (
     ActivityItem,
@@ -917,7 +917,6 @@ class ReportService:
         leave_cnt = att_map.get("LEAVE", 0)
 
         # Total Payroll Run Value
-        period_str = start_d.strftime("%Y-%m")
         pay_res = await self.db.execute(
             select(func.coalesce(func.sum(Payslip.net_payable), 0)).where(
                 Payslip.tenant_id == tenant_id
@@ -997,7 +996,7 @@ class ReportService:
                 "department": dept_name,
                 "designation": desig_name,
                 "employment_type": emp.employment_type or "Full-time",
-                "joining_date": emp.joining_date.isoformat(),
+                "joining_date": emp.joining_date.isoformat() if emp.joining_date else "",
                 "status": emp.status,
                 "days_present": present_cnt,
                 "days_absent": absent_cnt,
@@ -1142,15 +1141,15 @@ class ReportService:
         leads = (await self.db.execute(items_stmt)).scalars().all()
 
         rows_data = []
-        for l in leads:
+        for lead in leads:
             rows_data.append({
-                "date": l.created_at.strftime("%Y-%m-%d"),
+                "date": lead.created_at.strftime("%Y-%m-%d"),
                 "type": "Lead",
-                "name_or_title": l.name,
-                "contact_or_customer": l.company or l.phone,
-                "stage_or_status": l.status,
-                "value": float(l.estimated_value or 0),
-                "source_or_owner": l.source or "Website",
+                "name_or_title": lead.name,
+                "contact_or_customer": lead.company or lead.phone,
+                "stage_or_status": lead.status,
+                "value": float(lead.estimated_value or 0),
+                "source_or_owner": lead.source or "Website",
             })
 
         total_pages = math.ceil(total_leads / page_size) if total_leads > 0 else 1
@@ -1307,10 +1306,15 @@ class ReportService:
     # -------------------------------------------------------------------------
     @staticmethod
     def export_report_to_csv(headers: list[str], rows: list[dict[str, Any]] | list[list[Any]]) -> bytes:
-        if rows and len(rows) > 0 and isinstance(rows[0], dict):
-            row_list = [[r.get(h, "") for h in headers] for r in rows]
-        else:
-            row_list = rows
+        row_list: list[list[Any]] = []
+        if rows and len(rows) > 0:
+            first_elem = rows[0]
+            if isinstance(first_elem, dict):
+                dict_rows: list[dict[str, Any]] = rows  # type: ignore[assignment]
+                row_list = [[r.get(h, "") for h in headers] for r in dict_rows]
+            else:
+                list_rows: list[list[Any]] = rows  # type: ignore[assignment]
+                row_list = list_rows
         csv_str = build_csv_string("report.csv", headers, row_list)
         return csv_str.encode("utf-8-sig")
 

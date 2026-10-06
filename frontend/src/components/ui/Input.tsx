@@ -6,10 +6,11 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   hint?: string;
   required?: boolean;
   icon?: ReactNode;
+  rightElement?: ReactNode;
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, icon, className = '', id, required, ...props }, ref) => {
+  ({ label, error, hint, icon, rightElement, className = '', id, required, style, ...props }, ref) => {
     const inputId = id || props.name;
 
     return (
@@ -21,12 +22,34 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {required && <span className="form-required">*</span>}
           </label>
         )}
-        <input
-          ref={ref}
-          id={inputId}
-          className={`form-input ${error ? 'error' : ''} ${className}`.trim()}
-          {...props}
-        />
+        <div style={{ position: 'relative', width: '100%' }}>
+          <input
+            ref={ref}
+            id={inputId}
+            className={`form-input ${error ? 'error' : ''} ${className}`.trim()}
+            style={{
+              ...style,
+              paddingRight: rightElement ? '42px' : style?.paddingRight,
+            }}
+            {...props}
+          />
+          {rightElement && (
+            <div
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2,
+              }}
+            >
+              {rightElement}
+            </div>
+          )}
+        </div>
         {error && <span className="form-error" style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', display: 'block' }}>{error}</span>}
         {hint && !error && <span className="form-hint">{hint}</span>}
       </div>

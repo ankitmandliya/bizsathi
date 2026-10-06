@@ -1,7 +1,8 @@
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_tenant, get_current_user, require_permission
@@ -20,13 +21,11 @@ from app.schemas.sales import (
     QuotationResponse,
     QuotationUpdate,
 )
+from app.services.audit import get_client_ip, get_user_agent
 from app.services.pdf import generate_invoice_pdf_html, generate_payment_receipt_pdf_html, generate_quotation_pdf_html
 from app.services.sales import SalesService
 
 router = APIRouter(prefix="/sales", tags=["sales"])
-
-
-from app.services.audit import get_client_ip, get_user_agent
 
 
 @router.get("/status")
@@ -344,12 +343,12 @@ async def send_invoice_reminder(
     from app.models.crm import Customer
     from app.services.campaign_service import render_template_text, determine_active_channels
     try:
-        from workers.tasks.communication import process_communication_task
-        from workers.tasks.email import send_email_task
+        from workers.tasks.communication import process_communication_task  # type: ignore[import-not-found]
+        from workers.tasks.email import send_email_task  # type: ignore[import-not-found]
     except ImportError:
-        def process_communication_task(*args: Any, **kwargs: Any) -> dict:
+        def process_communication_task(*args: Any, **kwargs: Any) -> dict[str, Any]:
             return {"status": "processed"}
-        def send_email_task(*args: Any, **kwargs: Any) -> dict:
+        def send_email_task(*args: Any, **kwargs: Any) -> dict[str, Any]:
             return {"status": "sent"}
 
 

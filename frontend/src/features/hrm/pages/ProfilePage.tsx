@@ -11,10 +11,8 @@ import {
   Lock,
   KeyRound,
   Mail,
-  Building2,
   Calendar,
   Briefcase,
-  ShieldCheck,
   Check,
 } from 'lucide-react';
 import { hrmApi, Employee } from '../services/hrmApi';
@@ -318,7 +316,7 @@ export function ProfilePage() {
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as 'contact' | 'bank' | 'statutory' | 'security')}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

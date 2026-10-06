@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { X, Check, ChevronRight, ChevronLeft, Send, Calendar, AlertCircle, Smartphone, Mail, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { X, Check, ChevronRight, ChevronLeft, Send, Calendar, AlertCircle, Users } from 'lucide-react';
 import { Template, AudienceCountResponse, marketingApi } from '../../services/marketingApi';
 
 interface CampaignWizardModalProps {
@@ -22,9 +22,6 @@ export function CampaignWizardModal({ templates, onClose, onCampaignCreated }: C
   const [audienceData, setAudienceData] = useState<AudienceCountResponse | null>(null);
   const [loadingAudience, setLoadingAudience] = useState(false);
 
-  // Tenant Settings (Single Source of Truth)
-  const [tenantSettings, setTenantSettings] = useState<{ whatsapp_enabled: boolean; email_enabled: boolean } | null>(null);
-
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,13 +31,9 @@ export function CampaignWizardModal({ templates, onClose, onCampaignCreated }: C
     if (usable.length > 0 && !selectedTemplateId) {
       setSelectedTemplateId(usable[0].id);
     }
-  }, [templates]);
+  }, [templates, selectedTemplateId]);
 
-  useEffect(() => {
-    fetchAudienceCount();
-  }, [audienceFilter, audienceFilterValue]);
-
-  const fetchAudienceCount = async () => {
+  const fetchAudienceCount = useCallback(async () => {
     setLoadingAudience(true);
     try {
       const res = await marketingApi.getAudienceCount({
@@ -53,7 +46,11 @@ export function CampaignWizardModal({ templates, onClose, onCampaignCreated }: C
     } finally {
       setLoadingAudience(false);
     }
-  };
+  }, [audienceFilter, audienceFilterValue]);
+
+  useEffect(() => {
+    fetchAudienceCount();
+  }, [fetchAudienceCount]);
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
